@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { callSmartPriority, type PriorityResult } from '@/api/smartPriority';
 import { Layout } from '@/components/Layout';
 import { PriorityCard } from '@/components/Cards';
 import { mockTasks } from '@/data/index';
@@ -14,49 +15,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/lib/motion';
-
-type PriorityResult = {
-  task_id: string;
-  priority_score: number;
-  priority_level: 'P1' | 'P2' | 'P3';
-  reason: string[];
-  next_actions: string[];
-  assumptions: string[];
-};
-
-type PriorityResponse = {
-  results: PriorityResult[];
-};
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-async function callSmartPriority(payload: any): Promise<PriorityResponse> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env');
-  }
-
-  const url = `${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/smart-priority`;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Edge Functions ส่วนใหญ่ต้องมี Authorization
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    // โชว์ข้อความจาก server ให้อ่านง่าย
-    throw new Error(`SmartPriority API error (${res.status}): ${text}`);
-  }
-
-  // text ควรเป็น JSON ล้วน
-  return JSON.parse(text) as PriorityResponse;
-}
 
 const SmartPriority: React.FC = () => {
   // tasks ในหน้านี้ (ตอนนี้ใช้ mock)
