@@ -1,0 +1,203 @@
+@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+==========================================================================
+【AI HANDOVER NOTE】
+1. DESIGN PHILOSOPHY:
+   - Atmosphere: 'Productivity Harmony'. A blend of Ed-Tech efficiency and approachable calmness to reduce student anxiety.
+   - Visual Style: 'Soft-Tech Bento'. Uses modular card surfaces with generous border-radii (20px) and soft ambient shadows to create a physical sense of organization.
+   - Logic: The UI prioritizes 'Next Action' (Start Now) over 'Information Overload'. Elements use a gradient bridge between Tech-Blue and Growth-Green to symbolize the journey from task to success.
+
+2. TYPOGRAPHY:
+   - Sans (Prompt): Chosen for its modern, geometric Thai glyphs that maintain high legibility on mobile screens. Weights 500/600 are used for headers to establish clear hierarchy.
+   - Mono (JetBrains Mono): Reserved for Class Codes, time-tracking digits, and technical data points to provide a distinct 'utility' feel.
+
+3. COLOR SYSTEM:
+   - Primary (#1677FF / oklch 55% 0.21 254): Represents trust and the core DekThai brand. Maps to --primary and --ring.
+   - Secondary/Success (#22C55E / oklch 70% 0.19 144): Represents growth and completed tasks. Maps to --secondary.
+   - Semantic Logic: Destructive uses a warm red-orange to signal urgency without being overly aggressive. Muted tones use a slight blue tint (Cool Greys) to keep the UI feeling fresh.
+
+4. USAGE GUIDE:
+   - Layout: Strictly Mobile-first. All interactive targets (buttons/inputs) must be at least 44px in height.
+   - Effects: Use 'glassmorphism' (backdrop-blur) for the Bottom Navigation bar to maintain context of the content behind it. Use a 2px rim-light effect on active cards.
+   - Gradient Rule: Primary linear-gradient(135deg, var(--primary), var(--secondary)) should be used for the 'Top Priority' card and 'Submit' buttons only.
+==========================================================================
+*/
+
+:root {
+  /* Typography */
+  --font-sans: Prompt, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+  --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  
+  /* Radius */
+  --radius: 1.25rem;
+
+  /* Core UI Tokens */
+  --background: oklch(0.98 0.005 240);
+  --foreground: oklch(0.25 0.02 240);
+  --card: oklch(1.0 0 0);
+  --card-foreground: oklch(0.25 0.02 240);
+  --popover: oklch(1.0 0 0);
+  --popover-foreground: oklch(0.25 0.02 240);
+  --primary: oklch(0.55 0.21 254);
+  --primary-foreground: oklch(0.98 0.01 254);
+  --secondary: oklch(0.70 0.19 144);
+  --secondary-foreground: oklch(0.20 0.05 144);
+  --muted: oklch(0.95 0.01 240);
+  --muted-foreground: oklch(0.45 0.02 240);
+  --accent: oklch(0.92 0.04 254);
+  --accent-foreground: oklch(0.45 0.15 254);
+  --destructive: oklch(0.60 0.18 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.90 0.01 240);
+  --input: oklch(0.90 0.01 240);
+  --ring: oklch(0.55 0.21 254);
+  
+  /* Chart Tokens */
+  --chart-1: oklch(0.55 0.21 254);
+  --chart-2: oklch(0.70 0.19 144);
+  --chart-3: oklch(0.65 0.15 200);
+  --chart-4: oklch(0.80 0.12 180);
+  --chart-5: oklch(0.75 0.10 160);
+  
+  /* Sidebar Tokens */
+  --sidebar: oklch(0.98 0.005 240);
+  --sidebar-foreground: oklch(0.25 0.02 240);
+  --sidebar-primary: oklch(0.55 0.21 254);
+  --sidebar-primary-foreground: oklch(0.98 0.01 254);
+  --sidebar-accent: oklch(0.92 0.04 254);
+  --sidebar-accent-foreground: oklch(0.45 0.15 254);
+  --sidebar-border: oklch(0.90 0.01 240);
+  --sidebar-ring: oklch(0.55 0.21 254);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 240);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.60 0.18 254);
+  --primary-foreground: oklch(1.0 0 0);
+  --secondary: oklch(0.75 0.17 144);
+  --secondary-foreground: oklch(0.10 0.05 144);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.70 0.02 240);
+  --accent: oklch(0.25 0.05 254);
+  --accent-foreground: oklch(0.85 0.08 254);
+  --destructive: oklch(0.55 0.18 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.25 0.02 240);
+  --ring: oklch(0.60 0.18 254);
+  
+  /* Chart Tokens */
+  --chart-1: oklch(0.60 0.18 254);
+  --chart-2: oklch(0.75 0.17 144);
+  --chart-3: oklch(0.70 0.14 200);
+  --chart-4: oklch(0.85 0.11 180);
+  --chart-5: oklch(0.80 0.09 160);
+  
+  /* Sidebar Tokens */
+  --sidebar: oklch(0.12 0.02 240);
+  --sidebar-foreground: oklch(0.95 0.01 240);
+  --sidebar-primary: oklch(0.60 0.18 254);
+  --sidebar-primary-foreground: oklch(1.0 0 0);
+  --sidebar-accent: oklch(0.25 0.05 254);
+  --sidebar-accent-foreground: oklch(0.85 0.08 254);
+  --sidebar-border: oklch(0.25 0.02 240);
+  --sidebar-ring: oklch(0.60 0.18 254);
+}
+
+@theme inline {
+  /* Shadcn Core Mapping */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Charts Mapping */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar Mapping */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans min-h-screen;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  code, pre {
+    @apply font-mono;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-primary;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+  }
+}
