@@ -79,6 +79,7 @@ const normalizeClassCode = (code: string) => code.trim().toUpperCase();
 const toUnique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEV_FALLBACK_EMAIL_OTP = "123456";
+const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === "true";
 
 const createAvatarFromSeed = (seed: string) =>
   `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
@@ -477,7 +478,7 @@ export const useAuth = () => {
         throw new Error("Verification code is required.");
       }
 
-      const isDevFallbackOtp = import.meta.env.DEV && emailOtp === DEV_FALLBACK_EMAIL_OTP;
+      const isDevFallbackOtp = isTestOtpEnabled && emailOtp === DEV_FALLBACK_EMAIL_OTP;
       let userId = "";
 
       if (isDevFallbackOtp) {

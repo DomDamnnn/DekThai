@@ -33,6 +33,8 @@ import {
   TaskStatus
 } from '@/lib/index';
 
+const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
+
 // --- Login Form ---
 const loginSchema = z.object({
   identifier: z.string().email('Please enter a valid email'),
@@ -199,9 +201,9 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
           <p className="text-xs text-muted-foreground">
             We sent a code to <span className="font-medium text-foreground">{pendingData.email}</span>
           </p>
-          {import.meta.env.DEV && (
+          {isTestOtpEnabled && (
             <p className="text-xs text-amber-600">
-              Dev mode test code: 123456
+              Test code: 123456
             </p>
           )}
           <div className="relative">

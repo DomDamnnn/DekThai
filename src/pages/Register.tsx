@@ -7,6 +7,8 @@ import { RegisterForm, RegisterValues } from '@/components/Forms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 
+const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
+
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { register, requestRegisterEmailOtp } = useAuth();
@@ -23,9 +25,9 @@ const Register: React.FC = () => {
       const message = String(error?.message || '').toLowerCase();
       const isRateLimited = message.includes('rate limit');
 
-      if (import.meta.env.DEV && isRateLimited) {
+      if (isTestOtpEnabled && isRateLimited) {
         toast({
-          title: 'Dev fallback enabled',
+          title: 'Test OTP fallback enabled',
           description: 'Email OTP is rate-limited. Use test code 123456 to continue.',
         });
         return;
