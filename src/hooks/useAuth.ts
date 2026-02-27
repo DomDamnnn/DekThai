@@ -96,7 +96,7 @@ const normalizeClassCode = (code: string) => code.trim().toUpperCase();
 const toUnique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEV_FALLBACK_EMAIL_OTP = "123456";
-const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === "true";
+const isTestOtpEnabled = import.meta.env.VITE_ENABLE_TEST_OTP === "true";
 const AUTH_RESET_VERSION = "2026-02-27-v1";
 const AUTH_RESET_VERSION_KEY = "dekthai_auth_reset_version";
 
@@ -199,6 +199,10 @@ const buildProfileInsertPayload = (input: RegisterPayload, userId: string, email
 };
 
 const getStringMeta = (value: unknown) => (typeof value === "string" ? value : "");
+const getMetaRole = (value: unknown): "student" | "teacher" | null => {
+  if (value === "student" || value === "teacher") return value;
+  return null;
+};
 const getLocalProfiles = (state = readAuthState()) => listLocalAccounts(state).map((account) => account.profile);
 
 const applyOneTimeAuthReset = async () => {
@@ -278,9 +282,15 @@ export const useAuth = () => {
 
       if (!profileResolved) {
         const meta = (authUser.user_metadata || {}) as Record<string, unknown>;
+        const appMeta = (authUser.app_metadata || {}) as Record<string, unknown>;
+        const metaRole = getMetaRole(meta.role) || getMetaRole(appMeta.role);
+        if (!metaRole) {
+          throw new Error("Account profile is missing. Please sign up again from the Register page.");
+        }
+
         const bootstrapPayload = buildProfileInsertPayload(
           {
-            role: meta.role === "teacher" ? "teacher" : "student",
+            role: metaRole,
             nickname: getStringMeta(meta.nickname),
             school: getStringMeta(meta.school),
             grade: getStringMeta(meta.grade),
@@ -533,7 +543,7 @@ export const useAuth = () => {
     }
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
     });
     if (error) {
@@ -644,7 +654,19 @@ export const useAuth = () => {
         throw new Error("Email verified but user session is unavailable.");
       }
 
-      const passwordResult = await supabase.auth.updateUser({ password });
+      const normalizedRole = data.role === "teacher" ? "teacher" : "student";
+      const passwordResult = await supabase.auth.updateUser({
+        password,
+        data: {
+          role: normalizedRole,
+          nickname: (data.nickname || "").trim() || "New User",
+          school: (data.school || "").trim() || "Unknown School",
+          grade: normalizedRole === "student" ? (data.grade || "").trim() || "Unknown" : "Teacher",
+          subject: normalizedRole === "teacher" ? (data.subject || "").trim() || "General" : "",
+          phone: (data.phone || "").trim(),
+          avatar: data.avatar || "",
+        },
+      });
       if (passwordResult.error) {
         setIsLoading(false);
         throw new Error(passwordResult.error.message || "Unable to set account password.");

@@ -7,7 +7,7 @@ import { RegisterForm, RegisterValues } from '@/components/Forms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 
-const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
+const isTestOtpEnabled = import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
