@@ -12,6 +12,7 @@ const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const { settings } = useAppSettings();
   const th = settings.language === 'th';
+  const heroImageSrc = `${import.meta.env.BASE_URL}welcome-hero-student.svg`;
 
   const highlights = th
     ? [
@@ -59,7 +60,7 @@ const Welcome: React.FC = () => {
             </div>
 
             <img
-              src="/welcome-hero-student.svg"
+              src={heroImageSrc}
               alt={th ? 'ภาพประกอบนักเรียนจัดการงานด้วย DekThai' : 'Student productivity illustration'}
               className="h-[300px] w-full object-cover"
             />
@@ -142,4 +143,3 @@ const Welcome: React.FC = () => {
 };
 
 export default Welcome;
-
