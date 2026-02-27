@@ -20,6 +20,17 @@ const Register: React.FC = () => {
         description: `Please check ${data.email} and enter the code.`,
       });
     } catch (error: any) {
+      const message = String(error?.message || '').toLowerCase();
+      const isRateLimited = message.includes('rate limit');
+
+      if (import.meta.env.DEV && isRateLimited) {
+        toast({
+          title: 'Dev fallback enabled',
+          description: 'Email OTP is rate-limited. Use test code 123456 to continue.',
+        });
+        return;
+      }
+
       toast({
         title: 'Send code failed',
         description: error?.message || 'Unable to send verification code.',
