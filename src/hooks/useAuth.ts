@@ -101,6 +101,7 @@ const DEV_FALLBACK_EMAIL_OTP = "123456";
 const isTestOtpEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_OTP === "true";
 const AUTH_RESET_VERSION = "2026-02-27-v2";
 const AUTH_RESET_VERSION_KEY = "dekthai_auth_reset_version";
+const AUTH_MIRROR_EVENT_SOURCE = "useAuth:mirror-sync";
 
 const createAvatarFromSeed = (seed: string) =>
   `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
@@ -169,7 +170,11 @@ const toLocalAuthState = (profile: Student | null): AuthState => {
 const pushAuthMirror = (profile: Student | null) => {
   const state = toLocalAuthState(profile);
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state));
-  window.dispatchEvent(new Event(AUTH_EVENT));
+  window.dispatchEvent(
+    new CustomEvent(AUTH_EVENT, {
+      detail: { source: AUTH_MIRROR_EVENT_SOURCE },
+    })
+  );
 };
 
 const getClassroomMemberName = (student: Student | undefined) => student?.nickname || "Unknown User";
@@ -492,7 +497,15 @@ export const useAuth = () => {
       void syncFromCloud();
     });
 
-    const onChange = () => void syncFromCloud();
+    const onChange = (event: Event) => {
+      if (event.type === AUTH_EVENT) {
+        const authEvent = event as CustomEvent<{ source?: string }>;
+        if (authEvent.detail?.source === AUTH_MIRROR_EVENT_SOURCE) {
+          return;
+        }
+      }
+      void syncFromCloud();
+    };
     window.addEventListener("storage", onChange);
     window.addEventListener(CLASSROOM_EVENT, onChange);
     window.addEventListener(AUTH_EVENT, onChange);
