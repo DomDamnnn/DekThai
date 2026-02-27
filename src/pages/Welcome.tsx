@@ -1,144 +1,101 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Layout } from '@/components/Layout';
-import { Button } from '@/components/ui/button';
 import { ROUTE_PATHS } from '@/lib/index';
-import { fadeInUp, staggerContainer, staggerItem } from '@/lib/motion';
-import { useAppSettings } from '@/hooks/useAppSettings';
-import { ArrowRight, CheckCircle2, CircleDot, Sparkles, Target } from 'lucide-react';
 
-const Welcome: React.FC = () => {
+type WelcomeProps = {
+  onStart?: () => void | Promise<void>;
+  onLogin?: () => void | Promise<void>;
+};
+
+const LOGO_SRC = `${import.meta.env.BASE_URL}dekthai-logo.png`;
+
+const START_LABEL = '\u0E40\u0E23\u0E34\u0E48\u0E21\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E1F\u0E23\u0E35';
+const LOGIN_LABEL =
+  '\u0E21\u0E35\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A';
+const FOOTER_TEXT =
+  '\u00A9 2026 DekThai \u2022 \u0E1C\u0E39\u0E49\u0E0A\u0E48\u0E27\u0E22\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E07\u0E32\u0E19\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E19\u0E31\u0E01\u0E40\u0E23\u0E35\u0E22\u0E19\u0E44\u0E17\u0E22';
+
+const Welcome: React.FC<WelcomeProps> = ({ onStart, onLogin }) => {
   const navigate = useNavigate();
-  const { settings } = useAppSettings();
-  const th = settings.language === 'th';
-  const heroImageSrc = `${import.meta.env.BASE_URL}welcome-hero-student.svg`;
 
-  const highlights = th
-    ? [
-        'รวมงานทุกวิชาไว้ที่เดียว ไม่ต้องคอยไล่แชต',
-        'Smart Priority ช่วยเรียงลำดับงานที่ควรเริ่มก่อน',
-        'ติดตามสตรีกและความคืบหน้าได้แบบเห็นภาพทันที',
-      ]
-    : [
-        'Keep every subject in one organized workspace',
-        'Smart Priority ranks what to start first',
-        'Track your streak and progress at a glance',
-      ];
+  const handleStart = React.useCallback(async () => {
+    if (onStart) {
+      await onStart();
+      return;
+    }
 
-  const stats = th
-    ? [
-        { label: 'นักเรียนใช้งานแล้ว', value: '12K+' },
-        { label: 'งานที่ส่งตรงเวลา', value: '96%' },
-        { label: 'เวลาที่ประหยัดได้', value: '4.2 ชม./สัปดาห์' },
-      ]
-    : [
-        { label: 'Active students', value: '12K+' },
-        { label: 'On-time submissions', value: '96%' },
-        { label: 'Saved each week', value: '4.2 hrs' },
-      ];
+    navigate(ROUTE_PATHS.REGISTER);
+  }, [navigate, onStart]);
+
+  const handleLogin = React.useCallback(async () => {
+    if (onLogin) {
+      await onLogin();
+      return;
+    }
+
+    navigate(ROUTE_PATHS.LOGIN);
+  }, [navigate, onLogin]);
 
   return (
-    <Layout>
-      <div className="relative min-h-screen overflow-hidden bg-background">
-        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-        <div className="pointer-events-none absolute top-40 -right-20 h-72 w-72 rounded-full bg-secondary/20 blur-3xl" />
-
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="mx-auto flex w-full max-w-md flex-col px-4 pb-10 pt-6"
-        >
-          <motion.section
-            variants={staggerItem}
-            className="relative overflow-hidden rounded-[2rem] border border-primary/15 bg-white shadow-[0_22px_60px_rgba(22,119,255,0.18)]"
-          >
-            <div className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" />
-              {th ? 'พื้นที่เรียนที่ตั้งใจออกแบบเพื่อ ม.ปลาย' : 'Built for high-school students'}
-            </div>
-
-            <img
-              src={heroImageSrc}
-              alt={th ? 'ภาพประกอบนักเรียนจัดการงานด้วย DekThai' : 'Student productivity illustration'}
-              className="h-[300px] w-full object-cover"
-            />
-
-            <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-900/80 via-slate-900/35 to-transparent px-4 pb-4 pt-16 text-white">
-              <div className="flex items-center gap-2 text-xs font-medium text-white/90">
-                <CircleDot className="h-3.5 w-3.5 text-secondary" />
-                {th ? 'สตรีกส่งงานต่อเนื่อง 7 วัน' : '7-day on-time streak'}
-              </div>
-              <p className="mt-1 text-sm text-white/90">
-                {th ? 'วางแผนงานรายวันแบบไม่ลืมเดดไลน์' : 'Daily planning without missing deadlines'}
-              </p>
-            </div>
-          </motion.section>
-
-          <motion.section variants={fadeInUp} className="mt-6 space-y-4">
-            <h1 className="text-center text-[2.1rem] font-bold leading-tight text-foreground">
-              Dek<span className="text-primary">Thai</span>
-            </h1>
-            <p className="text-center text-base font-medium leading-relaxed text-muted-foreground">
-              {th ? (
-                <>
-                  ส่งงานต่อเนื่องแบบไม่ลนเดดไลน์
-                  <br />
-                  และไม่มีคำว่า <span className="font-semibold text-destructive">หลุด</span> อีกต่อไป
-                </>
-              ) : (
-                <>
-                  Keep submissions consistent without deadline panic.
-                  <br />
-                  No more missing tasks.
-                </>
-              )}
-            </p>
-          </motion.section>
-
-          <motion.section variants={fadeInUp} className="mt-5 grid grid-cols-3 gap-2.5">
-            {stats.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-border/70 bg-card/95 p-3 text-center shadow-sm">
-                <p className="text-sm font-bold text-foreground">{item.value}</p>
-                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{item.label}</p>
-              </div>
-            ))}
-          </motion.section>
-
-          <motion.section variants={fadeInUp} className="mt-6 space-y-3 rounded-3xl border border-primary/10 bg-muted/40 p-4">
-            {highlights.map((item) => (
-              <div key={item} className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
-                <p className="text-sm leading-relaxed text-foreground/80">{item}</p>
-              </div>
-            ))}
-          </motion.section>
-
-          <motion.section variants={fadeInUp} className="mt-7 space-y-3">
-            <Button
-              onClick={() => navigate(ROUTE_PATHS.REGISTER)}
-              className="h-14 w-full rounded-2xl bg-gradient-to-r from-primary to-secondary text-base font-semibold text-white shadow-lg shadow-primary/25 hover:opacity-95"
-            >
-              {th ? 'เริ่มใช้งานฟรี' : 'Start for free'}
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate(ROUTE_PATHS.LOGIN)}
-              className="h-12 w-full rounded-2xl border-primary/30 bg-white/70 text-base font-semibold text-primary hover:bg-primary/5"
-            >
-              <Target className="h-4 w-4" />
-              {th ? 'มีบัญชีอยู่แล้ว เข้าสู่ระบบ' : 'Already have an account? Sign in'}
-            </Button>
-          </motion.section>
-
-          <motion.p variants={fadeInUp} className="mt-6 text-center text-[11px] text-muted-foreground/70">
-            © 2026 DekThai • {th ? 'ผู้ช่วยจัดการงานสำหรับนักเรียนไทย' : 'Student-first assignment planner'}
-          </motion.p>
-        </motion.div>
+    <main
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#F7FAFF] via-[#FCFEFF] to-white px-6 sm:px-8 [padding-top:calc(env(safe-area-inset-top)+1.25rem)] [padding-bottom:calc(env(safe-area-inset-bottom)+1.25rem)]"
+      aria-label="DekThai welcome page"
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-60">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(70,130,180,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(70,130,180,0.08)_1px,transparent_1px)] bg-[size:38px_38px]" />
       </div>
-    </Layout>
+
+      <div className="pointer-events-none absolute -top-20 -left-16 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="pointer-events-none absolute right-0 top-1/3 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="pointer-events-none absolute bottom-16 left-1/3 h-64 w-64 rounded-full bg-cyan-200/20 blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2.5rem)] w-full max-w-3xl flex-col">
+        <section className="flex flex-1 items-center justify-center">
+          <div className="rounded-[30px] border border-white/75 bg-white/65 p-3 shadow-[0_20px_60px_-35px_rgba(14,116,144,0.45)] ring-1 ring-sky-100/80 backdrop-blur-md sm:p-4">
+            <img
+              src={LOGO_SRC}
+              alt="DekThai logo"
+              className="w-[190px] rounded-[22px] object-contain drop-shadow-[0_12px_26px_rgba(14,116,144,0.18)] motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-700 motion-reduce:opacity-100 sm:w-[225px] md:w-[260px]"
+            />
+          </div>
+        </section>
+
+        <section className="mx-auto mb-7 flex w-full max-w-[500px] flex-col items-center gap-3 sm:mb-8">
+          <button
+            type="button"
+            onClick={handleStart}
+            aria-label={START_LABEL}
+            className="h-14 w-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-10 text-base font-semibold text-white shadow-[0_18px_40px_-22px_rgba(14,165,233,0.75)] transition-all duration-300 hover:brightness-105 hover:shadow-[0_24px_46px_-24px_rgba(16,185,129,0.8)] active:scale-[0.985] active:shadow-[0_14px_30px_-20px_rgba(14,165,233,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7FAFF]"
+          >
+            {`${START_LABEL} \u2192`}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogin}
+            aria-label={LOGIN_LABEL}
+            className="h-[54px] w-full rounded-full border border-sky-200/80 bg-white/45 px-8 text-[15px] font-semibold text-sky-700 shadow-[0_8px_24px_-20px_rgba(14,116,144,0.65)] backdrop-blur-sm transition-colors duration-300 hover:bg-sky-50/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7FAFF]"
+          >
+            <span className="inline-flex items-center gap-2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 text-sky-500"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>{LOGIN_LABEL}</span>
+            </span>
+          </button>
+        </section>
+
+        <footer className="pb-1 text-center text-[11px] text-slate-400 sm:text-xs">{FOOTER_TEXT}</footer>
+      </div>
+    </main>
   );
 };
 
