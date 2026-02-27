@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { AssignmentRecord, ClassroomMember, ManagedClassroom, ROUTE_PATHS, Student, TeacherAssignmentRecord } from "@/lib";
-import { AUTH_EVENT, AUTH_STORAGE_KEY, AuthState } from "@/lib/authStorage";
+import {
+  AUTH_EVENT,
+  AUTH_STORAGE_KEY,
+  AuthState,
+  getCurrentUser,
+  listAccounts as listLocalAccounts,
+  loginAccount,
+  logoutAccount,
+  readAuthState,
+  registerAccount,
+} from "@/lib/authStorage";
 import {
   CLASSROOM_EVENT,
   createAssignmentRecord,
@@ -87,6 +97,8 @@ const toUnique = (items: string[]) => Array.from(new Set(items.filter(Boolean)))
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEV_FALLBACK_EMAIL_OTP = "123456";
 const isTestOtpEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_OTP === "true";
+const AUTH_RESET_VERSION = "2026-02-27-v1";
+const AUTH_RESET_VERSION_KEY = "dekthai_auth_reset_version";
 
 const createAvatarFromSeed = (seed: string) =>
   `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
@@ -187,6 +199,29 @@ const buildProfileInsertPayload = (input: RegisterPayload, userId: string, email
 };
 
 const getStringMeta = (value: unknown) => (typeof value === "string" ? value : "");
+const getLocalProfiles = (state = readAuthState()) => listLocalAccounts(state).map((account) => account.profile);
+
+const applyOneTimeAuthReset = async () => {
+  if (localStorage.getItem(AUTH_RESET_VERSION_KEY) === AUTH_RESET_VERSION) {
+    return;
+  }
+
+  const keys = Object.keys(localStorage);
+  keys.forEach((key) => {
+    if (key.startsWith("dekthai_") || key.startsWith("sb-")) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // ignore cleanup errors
+  }
+
+  localStorage.setItem(AUTH_RESET_VERSION_KEY, AUTH_RESET_VERSION);
+  window.dispatchEvent(new Event(AUTH_EVENT));
+};
 
 export const useAuth = () => {
   const [student, setStudent] = useState<Student | null>(null);
@@ -200,6 +235,20 @@ export const useAuth = () => {
     setIsLoading(true);
 
     try {
+      if (isTestOtpEnabled) {
+        const localState = readAuthState();
+        const localCurrent = getCurrentUser(localState);
+
+        if (localCurrent) {
+          setStudent(localCurrent);
+          setAccounts(getLocalProfiles(localState));
+          setTeacherClassrooms([]);
+          setTeacherAssignments([]);
+          setClassroomMembersByCode({});
+          return localCurrent;
+        }
+      }
+
       const [{ data: authData }, { data: authSession }] = await Promise.all([
         supabase.auth.getUser(),
         supabase.auth.getSession(),
@@ -208,11 +257,13 @@ export const useAuth = () => {
       const authUser = authData.user || authSession.session?.user || null;
       if (!authUser) {
         setStudent(null);
-        setAccounts([]);
+        setAccounts(isTestOtpEnabled ? getLocalProfiles() : []);
         setTeacherClassrooms([]);
         setTeacherAssignments([]);
         setClassroomMembersByCode({});
-        pushAuthMirror(null);
+        if (!isTestOtpEnabled) {
+          pushAuthMirror(null);
+        }
         return null;
       }
 
@@ -421,7 +472,11 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    void syncFromCloud();
+    const bootstrap = async () => {
+      await applyOneTimeAuthReset();
+      await syncFromCloud();
+    };
+    void bootstrap();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       void syncFromCloud();
@@ -430,11 +485,13 @@ export const useAuth = () => {
     const onChange = () => void syncFromCloud();
     window.addEventListener("storage", onChange);
     window.addEventListener(CLASSROOM_EVENT, onChange);
+    window.addEventListener(AUTH_EVENT, onChange);
 
     return () => {
       authListener.subscription.unsubscribe();
       window.removeEventListener("storage", onChange);
       window.removeEventListener(CLASSROOM_EVENT, onChange);
+      window.removeEventListener(AUTH_EVENT, onChange);
     };
   }, [syncFromCloud]);
 
@@ -459,6 +516,22 @@ export const useAuth = () => {
     setIsLoading(true);
     await delay(250);
 
+    if (isTestOtpEnabled) {
+      try {
+        const localAccount = loginAccount({ email: email.trim(), password }, readAuthState());
+        const localProfiles = getLocalProfiles(readAuthState());
+        setStudent(localAccount.profile);
+        setAccounts(localProfiles);
+        setTeacherClassrooms([]);
+        setTeacherAssignments([]);
+        setClassroomMembersByCode({});
+        setIsLoading(false);
+        return localAccount.profile;
+      } catch {
+        // fall through to Supabase login
+      }
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -481,6 +554,11 @@ export const useAuth = () => {
     if (!email) {
       setIsLoading(false);
       throw new Error("Email is required.");
+    }
+
+    if (isTestOtpEnabled) {
+      setIsLoading(false);
+      return { email };
     }
 
     const otpResult = await supabase.auth.signInWithOtp({
@@ -521,62 +599,55 @@ export const useAuth = () => {
       }
 
       const isDevFallbackOtp = isTestOtpEnabled && emailOtp === DEV_FALLBACK_EMAIL_OTP;
+      if (isDevFallbackOtp) {
+        const localAccount = registerAccount(
+          {
+            role: data.role === "teacher" ? "teacher" : "student",
+            nickname: (data.nickname || "").trim() || "New User",
+            school: (data.school || "").trim() || "Unknown School",
+            grade: (data.grade || "").trim() || "Unknown",
+            subject: (data.subject || "").trim() || "General",
+            email,
+            phone: (data.phone || "").trim() || undefined,
+            password,
+            avatar: data.avatar,
+          },
+          readAuthState()
+        );
+
+        const localProfiles = getLocalProfiles(readAuthState());
+        setStudent(localAccount.profile);
+        setAccounts(localProfiles);
+        setTeacherClassrooms([]);
+        setTeacherAssignments([]);
+        setClassroomMembersByCode({});
+        setIsLoading(false);
+        return localAccount.profile;
+      }
+
       let userId = "";
       let isPendingEmailVerification = false;
+      const verifyResult = await supabase.auth.verifyOtp({
+        email,
+        token: emailOtp,
+        type: "email",
+      });
 
-      if (isDevFallbackOtp) {
-        const signUpResult = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              role: data.role === "teacher" ? "teacher" : "student",
-              nickname: (data.nickname || "").trim() || "New User",
-              school: (data.school || "").trim() || "Unknown School",
-              grade: data.role === "teacher" ? "Teacher" : ((data.grade || "").trim() || "Unknown"),
-              subject: data.role === "teacher" ? ((data.subject || "").trim() || "General") : "",
-              phone: (data.phone || "").trim(),
-              avatar: data.avatar || "",
-            },
-          },
-        });
-        if (signUpResult.error) {
-          setIsLoading(false);
-          throw new Error(signUpResult.error.message || "Unable to create account in dev fallback mode.");
-        }
+      if (verifyResult.error) {
+        setIsLoading(false);
+        throw new Error(verifyResult.error.message || "Unable to verify email code.");
+      }
 
-        userId = signUpResult.data.user?.id || "";
-        if (!userId) {
-          setIsLoading(false);
-          throw new Error("Dev fallback signup succeeded but user is unavailable.");
-        }
+      userId = verifyResult.data.user?.id || "";
+      if (!userId) {
+        setIsLoading(false);
+        throw new Error("Email verified but user session is unavailable.");
+      }
 
-        if (!signUpResult.data.session) {
-          isPendingEmailVerification = true;
-        }
-      } else {
-        const verifyResult = await supabase.auth.verifyOtp({
-          email,
-          token: emailOtp,
-          type: "email",
-        });
-
-        if (verifyResult.error) {
-          setIsLoading(false);
-          throw new Error(verifyResult.error.message || "Unable to verify email code.");
-        }
-
-        userId = verifyResult.data.user?.id || "";
-        if (!userId) {
-          setIsLoading(false);
-          throw new Error("Email verified but user session is unavailable.");
-        }
-
-        const passwordResult = await supabase.auth.updateUser({ password });
-        if (passwordResult.error) {
-          setIsLoading(false);
-          throw new Error(passwordResult.error.message || "Unable to set account password.");
-        }
+      const passwordResult = await supabase.auth.updateUser({ password });
+      if (passwordResult.error) {
+        setIsLoading(false);
+        throw new Error(passwordResult.error.message || "Unable to set account password.");
       }
 
       const existingProfileResult = await supabase
@@ -936,13 +1007,18 @@ export const useAuth = () => {
   }, []);
 
   const logout = useCallback(async () => {
+    if (isTestOtpEnabled) {
+      logoutAccount(readAuthState());
+    }
     await supabase.auth.signOut();
     setStudent(null);
-    setAccounts([]);
+    setAccounts(isTestOtpEnabled ? getLocalProfiles(readAuthState()) : []);
     setTeacherClassrooms([]);
     setTeacherAssignments([]);
     setClassroomMembersByCode({});
-    pushAuthMirror(null);
+    if (!isTestOtpEnabled) {
+      pushAuthMirror(null);
+    }
   }, []);
 
   const isPendingApproval = student?.status === "pending";
