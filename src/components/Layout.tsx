@@ -13,8 +13,29 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const AUTH_PAGE_PATHS = [
+  ROUTE_PATHS.WELCOME,
+  ROUTE_PATHS.LOGIN,
+  ROUTE_PATHS.REGISTER,
+  ROUTE_PATHS.PDPA,
+] as const;
+
+const SETUP_PAGE_PATHS = [ROUTE_PATHS.CLASS_CODE, ROUTE_PATHS.PENDING] as const;
+
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+
+  const isAuthPage = AUTH_PAGE_PATHS.includes(location.pathname as (typeof AUTH_PAGE_PATHS)[number]);
+  const isSetupPage = SETUP_PAGE_PATHS.includes(location.pathname as (typeof SETUP_PAGE_PATHS)[number]);
+
+  if (isAuthPage || isSetupPage) {
+    return <div className="min-h-screen bg-background font-sans">{children}</div>;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
+function AppLayout({ children }: LayoutProps) {
   const { unreadCount } = useNotifications();
   const { student } = useAuth();
   const { settings } = useAppSettings();
@@ -38,19 +59,6 @@ export function Layout({ children }: LayoutProps) {
   const isTeacher = student?.role === 'teacher';
   const navItems = isTeacher ? teacherNavItems : studentNavItems;
   const homePath = isTeacher ? ROUTE_PATHS.TEACHER_CLASSROOMS : ROUTE_PATHS.HOME;
-
-  const isAuthPage = [
-    ROUTE_PATHS.WELCOME,
-    ROUTE_PATHS.LOGIN,
-    ROUTE_PATHS.REGISTER,
-    ROUTE_PATHS.PDPA,
-  ].includes(location.pathname as any);
-
-  const isSetupPage = [ROUTE_PATHS.CLASS_CODE, ROUTE_PATHS.PENDING].includes(location.pathname as any);
-
-  if (isAuthPage || isSetupPage) {
-    return <div className="min-h-screen bg-background font-sans">{children}</div>;
-  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col">
