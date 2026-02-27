@@ -28,8 +28,8 @@ const PDPA: React.FC = () => {
       return;
     }
 
-    if (student.role === 'student' && student.status !== 'approved') {
-      navigate(ROUTE_PATHS.CLASS_CODE);
+    if (student.role === 'student') {
+      navigate(ROUTE_PATHS.HOME);
       return;
     }
 

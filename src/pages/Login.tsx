@@ -27,7 +27,7 @@ const Login: React.FC = () => {
         navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
         return;
       }
-      navigate(user.status === 'approved' ? ROUTE_PATHS.HOME : ROUTE_PATHS.CLASS_CODE);
+      navigate(ROUTE_PATHS.HOME);
     } catch (error: any) {
       toast({
         title: 'Login failed',

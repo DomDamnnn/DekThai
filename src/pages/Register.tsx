@@ -63,7 +63,7 @@ const Register: React.FC = () => {
         navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
         return;
       }
-      navigate(ROUTE_PATHS.CLASS_CODE);
+      navigate(ROUTE_PATHS.HOME);
     } catch (error: any) {
       toast({
         title: 'Verify failed',
