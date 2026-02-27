@@ -44,7 +44,17 @@ const Register: React.FC = () => {
 
   const handleRegisterSubmit = async (data: RegisterValues & { emailOtp: string }) => {
     try {
-      const user = await register(data);
+      const result = await register(data);
+      if ('pendingEmailVerification' in result && result.pendingEmailVerification) {
+        toast({
+          title: 'Account created',
+          description: `Signup saved for ${result.email}. Please confirm email once, then sign in.`,
+        });
+        navigate(ROUTE_PATHS.LOGIN);
+        return;
+      }
+
+      const user = result;
       toast({
         title: 'Account created',
         description: `Welcome ${user.nickname}`,

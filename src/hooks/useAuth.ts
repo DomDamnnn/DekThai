@@ -15,6 +15,13 @@ type RegisterPayload = Partial<Student> & {
   emailOtp?: string;
 };
 
+type RegisterResult =
+  | Student
+  | {
+      pendingEmailVerification: true;
+      email: string;
+    };
+
 type CreateClassroomPayload = {
   gradeRoom: string;
   school?: string;
@@ -179,6 +186,8 @@ const buildProfileInsertPayload = (input: RegisterPayload, userId: string, email
   };
 };
 
+const getStringMeta = (value: unknown) => (typeof value === "string" ? value : "");
+
 export const useAuth = () => {
   const [student, setStudent] = useState<Student | null>(null);
   const [accounts, setAccounts] = useState<Student[]>([]);
@@ -214,11 +223,44 @@ export const useAuth = () => {
         .maybeSingle<ProfileRow>();
 
       if (profileError) throw profileError;
-      if (!profileRaw) {
-        throw new Error("Profile not found. Please re-register this account.");
+      let profileResolved = profileRaw;
+
+      if (!profileResolved) {
+        const meta = (authUser.user_metadata || {}) as Record<string, unknown>;
+        const bootstrapPayload = buildProfileInsertPayload(
+          {
+            role: meta.role === "teacher" ? "teacher" : "student",
+            nickname: getStringMeta(meta.nickname),
+            school: getStringMeta(meta.school),
+            grade: getStringMeta(meta.grade),
+            subject: getStringMeta(meta.subject),
+            phone: getStringMeta(meta.phone),
+            avatar: getStringMeta(meta.avatar),
+          },
+          authUser.id,
+          authUser.email || ""
+        );
+
+        const createProfileResult = await supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: authUser.id,
+              ...bootstrapPayload,
+            },
+            { onConflict: "id" }
+          )
+          .select("*")
+          .maybeSingle<ProfileRow>();
+
+        if (createProfileResult.error) throw createProfileResult.error;
+        if (!createProfileResult.data) {
+          throw new Error("Profile not found. Please re-register this account.");
+        }
+        profileResolved = createProfileResult.data;
       }
 
-      let currentStudent = mapProfile(profileRaw);
+      let currentStudent = mapProfile(profileResolved);
       const teacherClassSet = new Set<string>();
       const managedCodes: string[] = [];
       const assignedCodes: string[] = [];
@@ -458,7 +500,7 @@ export const useAuth = () => {
   }, []);
 
   const register = useCallback(
-    async (data: RegisterPayload) => {
+    async (data: RegisterPayload): Promise<RegisterResult> => {
       setIsLoading(true);
       await delay(300);
 
@@ -480,11 +522,23 @@ export const useAuth = () => {
 
       const isDevFallbackOtp = isTestOtpEnabled && emailOtp === DEV_FALLBACK_EMAIL_OTP;
       let userId = "";
+      let isPendingEmailVerification = false;
 
       if (isDevFallbackOtp) {
         const signUpResult = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              role: data.role === "teacher" ? "teacher" : "student",
+              nickname: (data.nickname || "").trim() || "New User",
+              school: (data.school || "").trim() || "Unknown School",
+              grade: data.role === "teacher" ? "Teacher" : ((data.grade || "").trim() || "Unknown"),
+              subject: data.role === "teacher" ? ((data.subject || "").trim() || "General") : "",
+              phone: (data.phone || "").trim(),
+              avatar: data.avatar || "",
+            },
+          },
         });
         if (signUpResult.error) {
           setIsLoading(false);
@@ -498,16 +552,7 @@ export const useAuth = () => {
         }
 
         if (!signUpResult.data.session) {
-          const signInResult = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (signInResult.error) {
-            setIsLoading(false);
-            throw new Error(
-              "Dev fallback code accepted but this project still requires email confirmation. Disable email confirm in local Supabase Auth settings for dev fallback."
-            );
-          }
+          isPendingEmailVerification = true;
         }
       } else {
         const verifyResult = await supabase.auth.verifyOtp({
@@ -546,6 +591,14 @@ export const useAuth = () => {
       if (existingProfileResult.data?.id) {
         setIsLoading(false);
         throw new Error("This email is already registered. Please sign in.");
+      }
+
+      if (isPendingEmailVerification) {
+        setIsLoading(false);
+        return {
+          pendingEmailVerification: true,
+          email,
+        };
       }
 
       const profilePayload = buildProfileInsertPayload(data, userId, email);
