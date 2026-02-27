@@ -42,12 +42,28 @@ const createEmptyAuthState = (): AuthState => ({
   emailIndex: {},
 });
 
+const getAuthStorage = (): Storage | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage;
+  } catch {
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  }
+};
+
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 export const readAuthState = (): AuthState => {
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  const raw = getAuthStorage()?.getItem(AUTH_STORAGE_KEY);
   if (!raw) return createEmptyAuthState();
 
   try {
@@ -63,7 +79,7 @@ export const readAuthState = (): AuthState => {
 };
 
 export const saveAuthState = (state: AuthState) => {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state));
+  getAuthStorage()?.setItem(AUTH_STORAGE_KEY, JSON.stringify(state));
   window.dispatchEvent(new Event(AUTH_EVENT));
 };
 
