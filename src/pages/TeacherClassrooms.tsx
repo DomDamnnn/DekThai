@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Building2, Copy, Plus, School, Users } from "lucide-react";
+import { Building2, ClipboardCheck, Copy, Plus, School, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { useTeacherGuard } from "@/hooks/useTeacherGuard";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,13 +13,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { ROUTE_PATHS } from "@/lib";
 
 const TeacherClassrooms: React.FC = () => {
+  const navigate = useNavigate();
   const { isTeacher, teacher } = useTeacherGuard();
   const { teacherClassrooms, createClassroom, assignTeacherToClassroom, getClassroomMembers } = useAuth();
   const { toast } = useToast();
   const { settings } = useAppSettings();
   const th = settings.language === "th";
+  const createClassroomRef = useRef<HTMLDivElement | null>(null);
+  const joinClassroomRef = useRef<HTMLDivElement | null>(null);
 
   const [gradeRoom, setGradeRoom] = useState("");
   const [school, setSchool] = useState("");
@@ -52,6 +57,9 @@ const TeacherClassrooms: React.FC = () => {
   }, [getClassroomMembers, teacherClassrooms]);
 
   const totalStudents = classroomStats.reduce((sum, room) => sum + room.students, 0);
+  const scrollToSection = (section: HTMLDivElement | null) => {
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const handleCreateClassroom = async () => {
     if (!gradeRoom.trim()) return;
@@ -164,7 +172,37 @@ const TeacherClassrooms: React.FC = () => {
           </Card>
         </div>
 
-        <Card className="border-none shadow-sm">
+        <div className="grid grid-cols-3 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto min-h-[76px] rounded-xl flex flex-col items-center justify-center gap-2 px-2 py-3 text-xs whitespace-normal text-center"
+            onClick={() => scrollToSection(createClassroomRef.current)}
+          >
+            <Plus className="w-4 h-4" />
+            {th ? "สร้างห้องเรียน" : "Create classroom"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto min-h-[76px] rounded-xl flex flex-col items-center justify-center gap-2 px-2 py-3 text-xs whitespace-normal text-center"
+            onClick={() => scrollToSection(joinClassroomRef.current)}
+          >
+            <Building2 className="w-4 h-4" />
+            {th ? "เข้าร่วมห้องเรียน" : "Join classroom"}
+          </Button>
+          <Button
+            type="button"
+            className="h-auto min-h-[76px] rounded-xl flex flex-col items-center justify-center gap-2 px-2 py-3 text-xs whitespace-normal text-center"
+            onClick={() => navigate(ROUTE_PATHS.TEACHER_ASSIGNMENTS)}
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            {th ? "สร้างงาน" : "Create assignment"}
+          </Button>
+        </div>
+
+        <div ref={createClassroomRef}>
+          <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Plus className="w-4 h-4 text-primary" />
@@ -204,9 +242,11 @@ const TeacherClassrooms: React.FC = () => {
               {isSubmitting ? (th ? "กำลังสร้าง..." : "Creating...") : th ? "สร้างห้องเรียน" : "Create classroom"}
             </Button>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="border-none shadow-sm">
+        <div ref={joinClassroomRef}>
+          <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
@@ -246,7 +286,8 @@ const TeacherClassrooms: React.FC = () => {
               {isAssigning ? (th ? "กำลังเพิ่ม..." : "Assigning...") : th ? "เพิ่มครูร่วมสอน" : "Assign co-teacher"}
             </Button>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         <div className="space-y-3">
           {teacherClassrooms.map((room, index) => {
