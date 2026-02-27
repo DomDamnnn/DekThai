@@ -95,9 +95,11 @@ type ClassroomFinder = Pick<ManagedClassroom, "code" | "gradeRoom" | "school">;
 const normalizeClassCode = (code: string) => code.trim().toUpperCase();
 const toUnique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isUuid = (value: string) => UUID_PATTERN.test(value);
 const DEV_FALLBACK_EMAIL_OTP = "123456";
-const isTestOtpEnabled = import.meta.env.VITE_ENABLE_TEST_OTP === "true";
-const AUTH_RESET_VERSION = "2026-02-27-v1";
+const isTestOtpEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_OTP === "true";
+const AUTH_RESET_VERSION = "2026-02-27-v2";
 const AUTH_RESET_VERSION_KEY = "dekthai_auth_reset_version";
 
 const createAvatarFromSeed = (seed: string) =>
@@ -239,19 +241,8 @@ export const useAuth = () => {
     setIsLoading(true);
 
     try {
-      if (isTestOtpEnabled) {
-        const localState = readAuthState();
-        const localCurrent = getCurrentUser(localState);
-
-        if (localCurrent) {
-          setStudent(localCurrent);
-          setAccounts(getLocalProfiles(localState));
-          setTeacherClassrooms([]);
-          setTeacherAssignments([]);
-          setClassroomMembersByCode({});
-          return localCurrent;
-        }
-      }
+      const localState = isTestOtpEnabled ? readAuthState() : null;
+      const localCurrent = localState ? getCurrentUser(localState) : null;
 
       const [{ data: authData }, { data: authSession }] = await Promise.all([
         supabase.auth.getUser(),
@@ -260,6 +251,15 @@ export const useAuth = () => {
 
       const authUser = authData.user || authSession.session?.user || null;
       if (!authUser) {
+        if (isTestOtpEnabled && localCurrent) {
+          setStudent(localCurrent);
+          setAccounts(getLocalProfiles(localState || undefined));
+          setTeacherClassrooms([]);
+          setTeacherAssignments([]);
+          setClassroomMembersByCode({});
+          return localCurrent;
+        }
+
         setStudent(null);
         setAccounts(isTestOtpEnabled ? getLocalProfiles() : []);
         setTeacherClassrooms([]);
@@ -526,6 +526,17 @@ export const useAuth = () => {
     setIsLoading(true);
     await delay(250);
 
+    const loginResult = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (!loginResult.error) {
+      const synced = await syncFromCloud();
+      if (!synced) throw new Error("Login succeeded but profile was not found.");
+      return synced;
+    }
+
     if (isTestOtpEnabled) {
       try {
         const localAccount = loginAccount({ email: email.trim(), password }, readAuthState());
@@ -538,23 +549,32 @@ export const useAuth = () => {
         setIsLoading(false);
         return localAccount.profile;
       } catch {
-        // fall through to Supabase login
+        // fallback error is handled below from Supabase login
       }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (error) {
+    if (loginResult.error) {
       setIsLoading(false);
-      throw new Error(error.message || "Unable to login.");
+      throw new Error(loginResult.error.message || "Unable to login.");
+    }
+  }, [syncFromCloud]);
+
+  const resolveCloudUserId = useCallback(async () => {
+    if (student?.id && isUuid(student.id)) {
+      return student.id;
     }
 
-    const synced = await syncFromCloud();
-    if (!synced) throw new Error("Login succeeded but profile was not found.");
-    return synced;
-  }, [syncFromCloud]);
+    const authUserResult = await supabase.auth.getUser();
+    if (authUserResult.error) {
+      throw new Error(authUserResult.error.message || "Unable to resolve your account.");
+    }
+
+    const authUserId = authUserResult.data.user?.id || "";
+    if (!isUuid(authUserId)) {
+      throw new Error("Current account is in local test mode. Please sign in with your real account.");
+    }
+    return authUserId;
+  }, [student]);
 
   const requestRegisterEmailOtp = useCallback(async (emailInput: string) => {
     setIsLoading(true);
@@ -636,7 +656,7 @@ export const useAuth = () => {
       }
 
       let userId = "";
-      let isPendingEmailVerification = false;
+      const isPendingEmailVerification = false;
       const verifyResult = await supabase.auth.verifyOtp({
         email,
         token: emailOtp,
@@ -855,11 +875,12 @@ export const useAuth = () => {
       const code = payload.code ? normalizeClassCode(payload.code) : undefined;
       const nowIso = new Date().toISOString();
       const school = (payload.school || student.school || "Unknown School").trim();
+      const ownerTeacherId = await resolveCloudUserId();
 
       const insertPayload: Record<string, unknown> = {
         grade_room: gradeRoom,
         school,
-        owner_teacher_id: student.id,
+        owner_teacher_id: ownerTeacherId,
         owner_teacher_name: student.nickname,
         created_at: nowIso,
       };
@@ -882,7 +903,7 @@ export const useAuth = () => {
       }
 
       const teacherJoinResult = await supabase.from("classroom_teachers").upsert(
-        [{ class_code: normalizeClassCode(roomCode), teacher_id: student.id }],
+        [{ class_code: normalizeClassCode(roomCode), teacher_id: ownerTeacherId }],
         { onConflict: "class_code,teacher_id" }
       );
       if (teacherJoinResult.error) {
@@ -895,14 +916,14 @@ export const useAuth = () => {
         code: normalizeClassCode(roomCode),
         gradeRoom,
         school,
-        ownerTeacherId: student.id,
+        ownerTeacherId,
         ownerTeacherName: student.nickname,
-        teacherIds: [student.id],
+        teacherIds: [ownerTeacherId],
         studentIds: [],
         createdAt: nowIso,
       } as ManagedClassroom;
     },
-    [student, syncFromCloud]
+    [resolveCloudUserId, student, syncFromCloud]
   );
 
   const assignTeacherToClassroom = useCallback(

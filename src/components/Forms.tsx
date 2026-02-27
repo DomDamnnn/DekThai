@@ -33,7 +33,7 @@ import {
   TaskStatus
 } from '@/lib/index';
 
-const isTestOtpEnabled = import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
+const isTestOtpEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
 
 // --- Login Form ---
 const loginSchema = z.object({

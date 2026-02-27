@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cross-env VITE_ENABLE_ROUTE_MESSAGING=true vite",
     "build": "vite build",
-    "build:gh-pages": "cross-env VITE_ENABLE_TEST_OTP=true vite build --mode gh-pages",
+    "build:gh-pages": "cross-env VITE_ENABLE_ROUTE_MESSAGING=true vite build --mode gh-pages",
     "build:dev": "VITE_ENABLE_ROUTE_MESSAGING=true vite build --mode development --sourcemap",
     "build:map": "VITE_ENABLE_ROUTE_MESSAGING=true vite build --sourcemap",
     "predeploy": "npm run build:gh-pages",
