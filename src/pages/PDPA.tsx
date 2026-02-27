@@ -3,32 +3,61 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Info, Lock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+
+const PDPA_CONSENT_KEY = 'dekthai_pdpa_consent_v1';
 
 const PDPA: React.FC = () => {
   const navigate = useNavigate();
+  const { student } = useAuth();
 
   const handleAccept = () => {
-    // In a real app, this would update the user's consent status in the database
-    navigate(ROUTE_PATHS.CLASS_CODE);
+    localStorage.setItem(PDPA_CONSENT_KEY, new Date().toISOString());
+
+    if (!student) {
+      navigate(ROUTE_PATHS.REGISTER);
+      return;
+    }
+
+    if (student.role === 'student' && student.status !== 'approved') {
+      navigate(ROUTE_PATHS.CLASS_CODE);
+      return;
+    }
+
+    if (student.role === 'teacher') {
+      navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
+      return;
+    }
+
+    navigate(ROUTE_PATHS.PROFILE);
   };
 
   const dataItems = [
     {
-      title: 'ข้อมูลระบุตัวตน',
-      description: 'ชื่อเล่น, โรงเรียน และระดับชั้น เพื่อใช้แสดงผลในระบบและกลุ่มการทำงาน',
+      title: 'Identity Data',
+      description:
+        'Nickname, school, and grade are used to display your profile and map assignments.',
       icon: <Info className="w-5 h-5 text-primary" />,
     },
     {
-      title: 'ข้อมูลการติดต่อ',
-      description: 'อีเมล หรือเบอร์โทรศัพท์ สำหรับการแจ้งเตือนงานและการกู้คืนบัญชี',
+      title: 'Contact Data',
+      description:
+        'Email or phone number is used for notifications and account recovery.',
       icon: <Lock className="w-5 h-5 text-primary" />,
     },
     {
-      title: 'ข้อมูลการเรียน',
-      description: 'รายการงาน, เดดไลน์ และไฟล์แนบ เพื่อใช้ในการประมวลผล Smart Priority และจัดตารางงาน',
+      title: 'Learning Data',
+      description:
+        'Assignments and deadlines are used by Priority AI to rank your tasks.',
       icon: <CheckCircle2 className="w-5 h-5 text-primary" />,
     },
   ];
@@ -36,7 +65,6 @@ const PDPA: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 pb-12">
       <div className="w-full max-w-md">
-        {/* Header Section */}
         <div className="mb-8 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -46,23 +74,23 @@ const PDPA: React.FC = () => {
           >
             <ShieldCheck size={32} />
           </motion.div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">ความเป็นส่วนตัวของคุณ</h1>
-          <p className="text-muted-foreground">เราให้ความสำคัญกับการปกป้องข้อมูลส่วนบุคคลของนักเรียนทุกคน</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Privacy Policy</h1>
+          <p className="text-muted-foreground">
+            DekThai protects student data and uses only what is needed for learning workflows.
+          </p>
         </div>
 
-        {/* Summary Card */}
         <Card className="border-none shadow-sm mb-6 bg-accent/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">สรุปสั้นๆ ให้เข้าใจง่าย</CardTitle>
+            <CardTitle className="text-lg">Summary</CardTitle>
             <CardDescription>
-              DekThai เก็บข้อมูลเพื่อช่วยให้คุณจัดการงานได้ดีขึ้น ไม่มีการขายข้อมูลให้บุคคลที่สาม
+              We collect limited data to help you manage tasks better and do not sell your data.
             </CardDescription>
           </CardHeader>
         </Card>
 
-        {/* Details Section */}
         <div className="space-y-4 mb-8">
-          <h2 className="font-semibold text-lg px-2">เราเก็บอะไร และใช้ทำอะไร?</h2>
+          <h2 className="font-semibold text-lg px-2">What We Collect</h2>
           {dataItems.map((item, index) => (
             <motion.div
               key={index}
@@ -72,9 +100,7 @@ const PDPA: React.FC = () => {
             >
               <Card className="border-border/50 overflow-hidden">
                 <CardContent className="p-4 flex gap-4">
-                  <div className="flex-shrink-0 mt-1">
-                    {item.icon}
-                  </div>
+                  <div className="flex-shrink-0 mt-1">{item.icon}</div>
                   <div>
                     <h3 className="font-medium text-foreground">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -85,46 +111,44 @@ const PDPA: React.FC = () => {
           ))}
         </div>
 
-        {/* Terms Scroll Area */}
         <div className="mb-8">
-          <h2 className="font-semibold text-lg px-2 mb-3">รายละเอียดเพิ่มเติม</h2>
+          <h2 className="font-semibold text-lg px-2 mb-3">Details</h2>
           <Card className="border-border/50">
-            <ScrollArea className="h-40 p-4 text-sm text-muted-foreground leading-relaxed">
+            <ScrollArea className="h-44 p-4 text-sm text-muted-foreground leading-relaxed">
               <p className="mb-3">
-                1. การประมวลผลข้อมูล: เราใช้ระบบ AI ในการวิเคราะห์ลำดับความสำคัญของงาน (Smart Priority) เพื่อช่วยลดความเครียดและป้องกันการส่งงานล่าช้า
+                1. Priority AI uses your task and deadline data to provide a ranked task list.
               </p>
               <p className="mb-3">
-                2. การแชร์ข้อมูล: ข้อมูลชื่อและสถานะงานของคุณจะถูกแสดงให้ครูและเพื่อนในกลุ่มงาน (DekGroup) เห็นเฉพาะในส่วนที่เกี่ยวข้องกับการทำงานเท่านั้น
+                2. Task status is visible only to relevant classroom members and teachers.
               </p>
               <p className="mb-3">
-                3. สิทธิของคุณ: คุณสามารถขอเข้าถึง แก้ไข หรือลบข้อมูลส่วนบุคคลของคุณได้ตลอดเวลาผ่านเมนูการตั้งค่าในโปรไฟล์
+                3. You can update your personal profile data anytime from the profile screen.
               </p>
               <p>
-                4. ความปลอดภัย: ข้อมูลทั้งหมดจะถูกเข้ารหัสและจัดเก็บไว้ในระบบคลาวด์ที่ได้มาตรฐานสากล
+                4. Data access is controlled and limited to system features that need it.
               </p>
             </ScrollArea>
           </Card>
         </div>
 
-        {/* Action Buttons */}
         <div className="space-y-3">
-          <Button 
+          <Button
             onClick={handleAccept}
             className="w-full h-14 text-lg rounded-2xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
           >
-            ยอมรับและดำเนินการต่อ
+            Accept and Continue
           </Button>
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(-1)} 
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
             className="w-full h-12 text-muted-foreground"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" /> ย้อนกลับ
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground mt-8 uppercase tracking-widest">
-          DekThai © 2026 Privacy Policy System
+          DekThai © 2026 Privacy Policy
         </p>
       </div>
     </div>

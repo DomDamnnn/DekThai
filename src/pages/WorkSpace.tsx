@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Search, Filter, Sparkles, LayoutGrid, ListFilter, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { WorkCard } from '@/components/Cards';
-import { mockTasks } from '@/data/index';
 import { Task, TaskStatus } from '@/lib/index';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,8 +15,10 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTasks } from '@/hooks/useTasks';
 
 const WorkSpace: React.FC = () => {
+  const { tasks, hasClassAccess } = useTasks();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ทั้งหมด'>('ทั้งหมด');
   const [isSmartPriority, setIsSmartPriority] = useState(false);
@@ -25,12 +26,12 @@ const WorkSpace: React.FC = () => {
 
   // Get unique subjects for filtering (Optional extension)
   const subjects = useMemo(() => {
-    const subs = new Set(mockTasks.map(t => t.subject));
+    const subs = new Set(tasks.map(t => t.subject));
     return Array.from(subs);
-  }, []);
+  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
-    let result = [...mockTasks];
+    let result = [...tasks];
 
     // Search filter
     if (searchQuery) {
@@ -66,13 +67,13 @@ const WorkSpace: React.FC = () => {
     }
 
     return result;
-  }, [searchQuery, statusFilter, isSmartPriority, sortBy]);
+  }, [searchQuery, statusFilter, isSmartPriority, sortBy, tasks]);
 
   const taskCounts = useMemo(() => ({
-    total: mockTasks.length,
-    pending: mockTasks.filter(t => t.status === 'ยังไม่เริ่ม' || t.status === 'กำลังทำ' || t.status === 'ตีกลับ').length,
-    returned: mockTasks.filter(t => t.status === 'ตีกลับ').length,
-  }), []);
+    total: tasks.length,
+    pending: tasks.filter(t => t.status === 'ยังไม่เริ่ม' || t.status === 'กำลังทำ' || t.status === 'ตีกลับ').length,
+    returned: tasks.filter(t => t.status === 'ตีกลับ').length,
+  }), [tasks]);
 
   return (
     <Layout>
@@ -146,6 +147,14 @@ const WorkSpace: React.FC = () => {
             </TabsList>
           </Tabs>
         </div>
+
+        {!hasClassAccess && (
+          <div className="px-4">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+              เข้าห้องเรียนก่อน จึงจะเห็นงานที่ถูกมอบหมายจากครู
+            </div>
+          </div>
+        )}
 
         {/* Task List */}
         <div className="px-4 flex flex-col gap-4">

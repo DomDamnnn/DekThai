@@ -5,6 +5,8 @@ import { ROUTE_PATHS } from '@/lib/index';
 import { Layout } from '@/components/Layout';
 import { LoginForm } from '@/components/Forms';
 import { springPresets, fadeInUp } from '@/lib/motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Login Page for DekThai Application
@@ -15,14 +17,24 @@ import { springPresets, fadeInUp } from '@/lib/motion';
  */
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toast } = useToast();
 
-  const handleLoginSubmit = (data: any) => {
-    // In a real application, this would call an auth service
-    console.log('Login attempt:', data);
-    
-    // Simulate successful login and redirect to Home/Dashboard
-    // For this prototype, we just navigate to the Home route
-    navigate(ROUTE_PATHS.HOME);
+  const handleLoginSubmit = async (data: any) => {
+    try {
+      const user = await login(data.identifier, data.password);
+      if (user.role === 'teacher') {
+        navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
+        return;
+      }
+      navigate(user.status === 'approved' ? ROUTE_PATHS.HOME : ROUTE_PATHS.CLASS_CODE);
+    } catch (error: any) {
+      toast({
+        title: 'Login failed',
+        description: error?.message || 'Please check your email/password.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

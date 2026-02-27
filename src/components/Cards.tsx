@@ -20,6 +20,7 @@ import {
   Notification,
   ROUTE_PATHS,
   getStatusColor,
+  getTaskStatusLabel,
   getDeadlineStatus,
   formatDateThai,
   TaskType
@@ -76,7 +77,7 @@ export function WorkCard({ task }: { task: Task }) {
                 <span>ส่งแบบ {task.type}</span>
               </div>
               <Badge variant="outline" className={cn("font-normal", getStatusColor(task.status))}>
-                {task.status}
+                {getTaskStatusLabel(task.status)}
               </Badge>
             </div>
           </CardContent>

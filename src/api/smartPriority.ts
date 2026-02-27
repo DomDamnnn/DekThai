@@ -25,6 +25,7 @@ export async function callSmartPriority(payload: unknown): Promise<PriorityRespo
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(payload),
@@ -35,5 +36,21 @@ export async function callSmartPriority(payload: unknown): Promise<PriorityRespo
     throw new Error(`SmartPriority API error (${res.status}): ${text}`);
   }
 
-  return JSON.parse(text) as PriorityResponse;
+  if (!text.trim()) {
+    return { results: [] };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('SmartPriority API returned invalid JSON');
+  }
+
+  const parsedObj = parsed as { results?: unknown };
+  if (!parsedObj || typeof parsedObj !== 'object' || !Array.isArray(parsedObj.results)) {
+    throw new Error('SmartPriority API response is missing "results" array');
+  }
+
+  return parsedObj as PriorityResponse;
 }

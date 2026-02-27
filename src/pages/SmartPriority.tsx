@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from 'react';
 import { callSmartPriority, type PriorityResult } from '@/api/smartPriority';
 import { Layout } from '@/components/Layout';
 import { PriorityCard } from '@/components/Cards';
-import { mockTasks } from '@/data/index';
 import { 
   Sparkles, 
   Info, 
@@ -15,10 +14,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/lib/motion';
+import { useTasks } from '@/hooks/useTasks';
 
 const SmartPriority: React.FC = () => {
-  // tasks ในหน้านี้ (ตอนนี้ใช้ mock)
-  const [tasks, setTasks] = useState<any[]>(() => [...mockTasks]);
+  const { tasks, replaceTasks } = useTasks();
   const [loadingAI, setLoadingAI] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -119,7 +118,7 @@ const SmartPriority: React.FC = () => {
         const payload = buildPayloadFromTasks(tasks);
         const data = await callSmartPriority(payload);
 
-        setTasks((prev) => applyAIResultsToTasks(prev, data.results));
+        replaceTasks(applyAIResultsToTasks(tasks, data.results));
         setLastUpdatedAt(new Date().toLocaleString());
       } catch (err: any) {
         setErrorMsg(err?.message ?? 'Unknown error');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { StatsCard } from '@/components/Cards';
-import { mockStudent, mockBadges } from '@/data/index';
+import { mockBadges } from '@/data/index';
 import { Badge as UIBadge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,21 +25,24 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { springPresets, fadeInUp, staggerContainer, staggerItem } from '@/lib/motion';
-
-const RANKING_DATA = [
-  { id: '1', name: 'เทพเจ้าสายส่ง', stack: 45, league: 'Gold', isMe: false },
-  { id: '2', name: 'ขยันเบอร์หนึ่ง', stack: 38, league: 'Gold', isMe: false },
-  { id: '3', name: 'ส่งงานทันใจ', stack: 32, league: 'Gold', isMe: false },
-  { id: '4', name: 'นักเรียนตัวอย่าง', stack: 28, league: 'Silver', isMe: false },
-  { id: '5', name: mockStudent.nickname, stack: mockStudent.stackCount, league: 'Silver', isMe: true },
-  { id: '6', name: 'เด็กหลังห้อง(กลับใจ)', stack: 12, league: 'Silver', isMe: false },
-  { id: '7', name: 'ผู้กล้าแห่งการส่ง', stack: 8, league: 'Bronze', isMe: false },
-  { id: '8', name: 'มือใหม่หัดส่ง', stack: 5, league: 'Bronze', isMe: false },
-];
+import { useAuth } from '@/hooks/useAuth';
+import { useTasks } from '@/hooks/useTasks';
 
 const StackPage: React.FC = () => {
-  const [isAnonymous, setIsAnonymous] = useState(mockStudent.isAnonymous);
+  const { student } = useAuth();
+  const { stats } = useTasks();
+  const [isAnonymous, setIsAnonymous] = useState(student?.isAnonymous ?? false);
   const [activeTab, setActiveTab] = useState('stats');
+  const rankingData = [
+    { id: '1', name: 'เทพเจ้าสายส่ง', stack: 45, league: 'Gold', isMe: false },
+    { id: '2', name: 'ขยันเบอร์หนึ่ง', stack: 38, league: 'Gold', isMe: false },
+    { id: '3', name: 'ส่งงานทันใจ', stack: 32, league: 'Gold', isMe: false },
+    { id: '4', name: 'นักเรียนตัวอย่าง', stack: 28, league: 'Silver', isMe: false },
+    { id: '5', name: student?.nickname || 'ฉัน', stack: stats.stackCount, league: 'Silver', isMe: true },
+    { id: '6', name: 'เด็กหลังห้อง(กลับใจ)', stack: 12, league: 'Silver', isMe: false },
+    { id: '7', name: 'ผู้กล้าแห่งการส่ง', stack: 8, league: 'Bronze', isMe: false },
+    { id: '8', name: 'มือใหม่หัดส่ง', stack: 5, league: 'Bronze', isMe: false },
+  ];
 
   const getLeagueColor = (league: string) => {
     switch (league) {
@@ -49,6 +52,10 @@ const StackPage: React.FC = () => {
       default: return 'text-muted-foreground bg-muted';
     }
   };
+
+  useEffect(() => {
+    setIsAnonymous(student?.isAnonymous ?? false);
+  }, [student?.isAnonymous]);
 
   return (
     <Layout>
@@ -79,28 +86,28 @@ const StackPage: React.FC = () => {
             <motion.div variants={staggerItem}>
               <StatsCard 
                 title="Stack ปัจจุบัน"
-                value={`${mockStudent.stackCount} วัน`}
+                value={`${stats.stackCount} วัน`}
                 icon={<Zap className="w-5 h-5 text-orange-500 fill-orange-500" />}
               />
             </motion.div>
             <motion.div variants={staggerItem}>
               <StatsCard 
                 title="On-time Rate"
-                value={`${mockStudent.onTimeRate}%`}
+                value={`${stats.onTimeRate}%`}
                 icon={<CheckCircle2 className="w-5 h-5 text-secondary" />}
               />
             </motion.div>
             <motion.div variants={staggerItem}>
               <StatsCard 
                 title="งานค้างสะสม"
-                value={`${mockStudent.backlogCount} งาน`}
+                value={`${stats.backlogCount} งาน`}
                 icon={<AlertCircle className="w-5 h-5 text-destructive" />}
               />
             </motion.div>
             <motion.div variants={staggerItem}>
               <StatsCard 
                 title="Stack สูงสุด"
-                value={`${mockStudent.maxStack} วัน`}
+                value={`${stats.maxStack} วัน`}
                 icon={<Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />}
               />
             </motion.div>
@@ -124,9 +131,9 @@ const StackPage: React.FC = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-end">
                     <span className="text-sm font-medium">ความคืบหน้าสู่ 14 วัน</span>
-                    <span className="text-2xl font-bold text-primary">{mockStudent.stackCount}/14</span>
+                    <span className="text-2xl font-bold text-primary">{stats.stackCount}/14</span>
                   </div>
-                  <Progress value={(mockStudent.stackCount / 14) * 100} className="h-3" />
+                  <Progress value={(stats.stackCount / 14) * 100} className="h-3" />
                   <div className="grid grid-cols-7 gap-2 pt-2">
                     {[...Array(7)].map((_, i) => (
                       <div key={i} className="flex flex-col items-center gap-1">
@@ -158,7 +165,7 @@ const StackPage: React.FC = () => {
                         <p className="text-xs text-muted-foreground">สัปดาห์นี้ดีขึ้น 5%</p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-secondary">{mockStudent.onTimeRate}%</span>
+                    <span className="text-lg font-bold text-secondary">{stats.onTimeRate}%</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
                     <div className="flex items-center gap-3">
@@ -170,7 +177,7 @@ const StackPage: React.FC = () => {
                         <p className="text-xs text-muted-foreground">รีบเคลียร์ก่อนเดดไลน์ถัดไป</p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-destructive">{mockStudent.backlogCount}</span>
+                    <span className="text-lg font-bold text-destructive">{stats.backlogCount}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -251,7 +258,7 @@ const StackPage: React.FC = () => {
 
               <div className="space-y-2">
                 <h3 className="text-sm font-bold px-1 mb-3">ลีกประจำสัปดาห์ (โรงเรียนสาธิตฯ)</h3>
-                {RANKING_DATA.map((user, index) => (
+                {rankingData.map((user, index) => (
                   <motion.div
                     key={user.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -269,7 +276,7 @@ const StackPage: React.FC = () => {
                       </div>
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-muted-foreground overflow-hidden">
                         {user.isMe ? (
-                          <img src={mockStudent.avatar} alt="Me" className="w-full h-full object-cover" />
+                          <img src={student?.avatar} alt="Me" className="w-full h-full object-cover" />
                         ) : (
                           user.name.charAt(0)
                         )}

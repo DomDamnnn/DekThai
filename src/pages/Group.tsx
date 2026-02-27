@@ -1,288 +1,374 @@
-import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { mockTasks } from '@/data/index';
-import { Task, getStatusColor, formatDateThai } from '@/lib/index';
-import { 
-  Users, 
-  MessageSquare, 
-  LayoutDashboard, 
-  ChevronRight, 
-  Paperclip, 
-  Clock, 
-  Send,
-  Plus,
-  MoreHorizontal,
-  CheckCircle2
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Users,
+  School,
+  Mail,
+  GraduationCap,
+  BookOpenCheck,
+  Sparkles,
+  LogOut,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Layout } from '@/components/Layout';
+import { ROUTE_PATHS } from '@/lib';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-// Dummy data for sub-tasks in Kanban
-const mockSubTasks = [
-  { id: 'st1', title: 'รวบรวมเนื้อหาบทที่ 1', assignee: 'บอย', deadline: '2026-02-18T10:00:00Z', status: 'done', files: 2 },
-  { id: 'st2', title: 'ออกแบบหน้าปกรายงาน', assignee: 'เดียร์', deadline: '2026-02-19T14:00:00Z', status: 'doing', files: 1 },
-  { id: 'st3', title: 'สรุปผลการทดลอง', assignee: 'ฟ้า', deadline: '2026-02-20T12:00:00Z', status: 'todo', files: 0 },
-  { id: 'st4', title: 'ทำสไลด์นำเสนอ', assignee: 'ต้น', deadline: '2026-02-21T09:00:00Z', status: 'todo', files: 0 },
-];
-
-const mockMessages = [
-  { id: 'm1', sender: 'บอย', text: 'ผมลงเนื้อหาบทที่ 1 ไว้ในโฟลเดอร์แล้วนะ', time: '10:15', isMe: false },
-  { id: 'm2', sender: 'เดียร์', text: 'โอเคจ้า เดี๋ยวเราเริ่มดูส่วนออกแบบให้เลย', time: '10:17', isMe: true },
-  { id: 'm3', sender: 'ฟ้า', text: 'ผลแล็บวันนี้ออกมาแล้ว เดี๋ยวส่งให้ในบอร์ดนะ', time: '11:00', isMe: false },
-];
+type MemberCard = {
+  userId: string;
+  role: 'teacher' | 'student';
+  name: string;
+  email: string;
+  avatar?: string;
+  school?: string;
+  grade?: string;
+  subject?: string;
+};
 
 const GroupPage: React.FC = () => {
-  const groupTasks = mockTasks.filter(task => task.isGroup);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(groupTasks[0]?.id || null);
-  const [activeTab, setActiveTab] = useState<'board' | 'chat'>('board');
+  const navigate = useNavigate();
+  const {
+    student,
+    accounts,
+    teacherClassrooms,
+    getClassroomMembers,
+    cancelJoinRequest,
+  } = useAuth();
+  const { toast } = useToast();
 
-  const selectedTask = groupTasks.find(t => t.id === selectedTaskId);
+  const [selectedClassCode, setSelectedClassCode] = useState('');
+  const [selectedMember, setSelectedMember] = useState<MemberCard | null>(null);
+  const [isLeavingClassroom, setIsLeavingClassroom] = useState(false);
 
-  if (!selectedTask) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
-          <Users className="w-16 h-16 text-muted-foreground mb-4 opacity-20" />
-          <h2 className="text-xl font-semibold">ยังไม่มีกลุ่มงาน</h2>
-          <p className="text-muted-foreground mt-2">งานกลุ่มที่ครูมอบหมายจะปรากฏที่นี่</p>
-        </div>
-      </Layout>
+  const availableClassCodes = useMemo(() => {
+    if (!student) return [];
+    if (student.role === 'teacher') {
+      const fromRooms = teacherClassrooms.map((room) => room.code);
+      const fromProfile = [...(student.managedClassCodes || []), ...(student.assignedClassCodes || [])];
+      return Array.from(new Set([...fromRooms, ...fromProfile].filter(Boolean)));
+    }
+    return student.classCode ? [student.classCode] : [];
+  }, [student, teacherClassrooms]);
+
+  useEffect(() => {
+    if (!student || student.role !== 'teacher') return;
+    if (!selectedClassCode && availableClassCodes[0]) {
+      setSelectedClassCode(availableClassCodes[0]);
+    }
+  }, [availableClassCodes, selectedClassCode, student]);
+
+  const activeClassCode = useMemo(() => {
+    if (!student) return '';
+    if (student.role === 'teacher') return selectedClassCode || availableClassCodes[0] || '';
+    return student.classCode || '';
+  }, [availableClassCodes, selectedClassCode, student]);
+
+  const managedMembers = useMemo(() => {
+    if (!activeClassCode) {
+      return { teachers: [], students: [] };
+    }
+    return getClassroomMembers(activeClassCode);
+  }, [activeClassCode, getClassroomMembers]);
+
+  const members = useMemo(() => {
+    if (!activeClassCode) return [];
+    const activeCode = activeClassCode.toUpperCase();
+    const map = new Map<string, MemberCard>();
+
+    const addMember = (member: MemberCard) => {
+      if (!member.userId) return;
+      if (!map.has(member.userId)) {
+        map.set(member.userId, member);
+      }
+    };
+
+    managedMembers.teachers.forEach((member) => {
+      const profile = accounts.find((acc) => acc.id === member.userId);
+      addMember({
+        userId: member.userId,
+        role: 'teacher',
+        name: member.name,
+        email: member.email,
+        avatar: member.avatar,
+        school: profile?.school,
+        grade: profile?.grade,
+        subject: profile?.subject,
+      });
+    });
+
+    managedMembers.students.forEach((member) => {
+      const profile = accounts.find((acc) => acc.id === member.userId);
+      addMember({
+        userId: member.userId,
+        role: 'student',
+        name: member.name,
+        email: member.email,
+        avatar: member.avatar,
+        school: profile?.school,
+        grade: profile?.grade,
+      });
+    });
+
+    accounts.forEach((account) => {
+      if (account.role === 'student') {
+        if ((account.classCode || '').toUpperCase() !== activeCode) return;
+        addMember({
+          userId: account.id,
+          role: 'student',
+          name: account.nickname,
+          email: account.email,
+          avatar: account.avatar,
+          school: account.school,
+          grade: account.grade,
+        });
+        return;
+      }
+
+      const teacherCodes = new Set(
+        [...(account.managedClassCodes || []), ...(account.assignedClassCodes || [])].map((code) =>
+          code.toUpperCase()
+        )
+      );
+      if (!teacherCodes.has(activeCode)) return;
+      addMember({
+        userId: account.id,
+        role: 'teacher',
+        name: account.nickname,
+        email: account.email,
+        avatar: account.avatar,
+        school: account.school,
+        grade: account.grade,
+        subject: account.subject,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'teacher' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [accounts, activeClassCode, managedMembers.students, managedMembers.teachers]);
+
+  const teacherCount = members.filter((member) => member.role === 'teacher').length;
+  const studentCount = members.filter((member) => member.role === 'student').length;
+
+  const handleLeaveClassroom = async () => {
+    if (!student || student.role !== 'student' || !activeClassCode || isLeavingClassroom) return;
+    const confirmed = window.confirm(
+      `Leave classroom ${activeClassCode}? You can rejoin later with class code.`
     );
-  }
+    if (!confirmed) return;
+
+    try {
+      setIsLeavingClassroom(true);
+      await cancelJoinRequest();
+      toast({
+        title: 'Left classroom',
+        description: `You have left ${activeClassCode}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Unable to leave classroom',
+        description: error?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLeavingClassroom(false);
+    }
+  };
+
+  if (!student) return null;
 
   return (
     <Layout>
-      <div className="pb-24">
-        {/* Header Section: Group Selection */}
-        <div className="bg-white border-b sticky top-0 z-10 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              DekGroup
-            </h1>
-            <Button variant="outline" size="sm" className="rounded-full">
-              <Plus className="w-4 h-4 mr-1" /> สร้างกลุ่ม
-            </Button>
-          </div>
-
-          <ScrollArea className="w-full whitespace-nowrap pb-2">
-            <div className="flex gap-3">
-              {groupTasks.map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => setSelectedTaskId(task.id)}
-                  className={`flex flex-col items-start p-3 rounded-2xl border-2 transition-all min-w-[200px] ${
-                    selectedTaskId === task.id 
-                      ? 'border-primary bg-primary/5 shadow-sm' 
-                      : 'border-transparent bg-muted/50'
-                  }`}
-                >
-                  <span className="text-xs font-medium text-muted-foreground mb-1">{task.subject}</span>
-                  <span className="text-sm font-bold truncate w-full text-left">{task.title}</span>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
+      <div className="max-w-md mx-auto pb-24 space-y-5">
+        <div className="pt-6">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <School className="w-6 h-6 text-primary" />
+            Classroom
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            View all members and tap to see profile details in a popup.
+          </p>
         </div>
 
-        {/* Progress Summary Card */}
-        <div className="p-4">
-          <Card className="p-4 bg-gradient-to-br from-primary/5 to-secondary/5 border-none shadow-sm">
-            <div className="flex justify-between items-end mb-3">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">ความคืบหน้ารวม</h3>
-                <p className="text-2xl font-bold text-primary">65%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">เหลืออีก 4 งานย่อย</p>
-                <p className="text-xs font-medium text-destructive">เดดไลน์: {formatDateThai(selectedTask.deadline)}</p>
-              </div>
-            </div>
-            <Progress value={65} className="h-2 mb-2" />
-            <div className="flex -space-x-2 mt-3">
-              {['บอย', 'เดียร์', 'ฟ้า', 'ต้น'].map((name, i) => (
-                <Avatar key={i} className="border-2 border-white w-8 h-8">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`} />
-                  <AvatarFallback>{name[0]}</AvatarFallback>
-                </Avatar>
-              ))}
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[10px] border-2 border-white font-medium">
-                +2
-              </div>
-            </div>
+        {student.role === 'teacher' && availableClassCodes.length > 0 && (
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Select classroom</p>
+              <Select value={activeClassCode} onValueChange={setSelectedClassCode}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select class code" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClassCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
           </Card>
-        </div>
+        )}
 
-        {/* Main Content Tabs */}
-        <div className="px-4">
-          <Tabs defaultValue="board" onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 rounded-full h-12 bg-muted p-1 mb-4">
-              <TabsTrigger value="board" className="rounded-full flex items-center gap-2">
-                <LayoutDashboard className="w-4 h-4" />
-                บอร์ดงาน
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-full flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                แชทกลุ่ม
-              </TabsTrigger>
-            </TabsList>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
+        {!activeClassCode && (
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-6 text-center space-y-3">
+              <Users className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+              <p className="font-semibold">No linked classroom yet.</p>
+              <p className="text-sm text-muted-foreground">
+                Add your class code first, then member list will appear here.
+              </p>
+              <Button
+                className="rounded-xl"
+                onClick={() => navigate(ROUTE_PATHS.CLASS_CODE)}
               >
-                <TabsContent value="board" className="mt-0">
-                  {/* Kanban Board Layout (Mobile Scrollable) */}
-                  <div className="space-y-6">
-                    {/* Section: To Do */}
-                    <KanbanSection 
-                      title="ต้องทำ"
-                      count={2}
-                      tasks={mockSubTasks.filter(s => s.status === 'todo')}
-                      color="bg-muted-foreground/10 text-muted-foreground"
-                    />
-                    
-                    {/* Section: Doing */}
-                    <KanbanSection 
-                      title="กำลังทำ"
-                      count={1}
-                      tasks={mockSubTasks.filter(s => s.status === 'doing')}
-                      color="bg-primary/10 text-primary"
-                    />
+                Go to Class Code
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-                    {/* Section: Done */}
-                    <KanbanSection 
-                      title="เสร็จแล้ว"
-                      count={1}
-                      tasks={mockSubTasks.filter(s => s.status === 'done')}
-                      color="bg-secondary/10 text-secondary"
-                    />
+        {activeClassCode && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 to-secondary/10 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Class Code</p>
+                  <p className="text-lg font-bold tracking-wide">{activeClassCode}</p>
+                </div>
+                <Badge className="rounded-full bg-primary text-white">{members.length} members</Badge>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Badge variant="secondary">Teachers {teacherCount}</Badge>
+                <Badge variant="outline">Students {studentCount}</Badge>
+              </div>
+              {student.role === 'student' && (
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 rounded-lg border-destructive/30 text-destructive hover:bg-destructive/10"
+                    onClick={handleLeaveClassroom}
+                    disabled={isLeavingClassroom}
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                    {isLeavingClassroom ? 'Leaving...' : 'Leave classroom'}
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Classroom Members</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {members.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    No members in this classroom yet.
                   </div>
-                </TabsContent>
+                )}
 
-                <TabsContent value="chat" className="mt-0">
-                  <div className="flex flex-col h-[50vh] bg-white rounded-3xl border shadow-sm">
-                    <ScrollArea className="flex-1 p-4">
-                      <div className="space-y-4">
-                        {mockMessages.map((msg) => (
-                          <div 
-                            key={msg.id} 
-                            className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              {!msg.isMe && <span className="text-[10px] font-bold text-muted-foreground">{msg.sender}</span>}
-                            </div>
-                            <div 
-                              className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.isMe 
-                                ? 'bg-primary text-white rounded-tr-none' 
-                                : 'bg-muted text-foreground rounded-tl-none'}`
-                              }
-                            >
-                              {msg.text}
-                            </div>
-                            <span className="text-[9px] text-muted-foreground mt-1">{msg.time}</span>
-                          </div>
-                        ))}
+                {members.map((member) => (
+                  <button
+                    key={member.userId}
+                    type="button"
+                    onClick={() => setSelectedMember(member)}
+                    className="w-full rounded-2xl border border-border p-3 text-left hover:bg-accent/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-11 h-11">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback>{member.name.slice(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold truncate">{member.name}</p>
+                          <Badge variant={member.role === 'teacher' ? 'secondary' : 'outline'}>
+                            {member.role === 'teacher' ? 'Teacher' : 'Student'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                       </div>
-                    </ScrollArea>
-                    <div className="p-3 border-t flex gap-2">
-                      <Input 
-                        placeholder="พิมพ์ข้อความ..." 
-                        className="rounded-full bg-muted border-none"
-                      />
-                      <Button size="icon" className="rounded-full shrink-0">
-                        <Send className="w-4 h-4" />
-                      </Button>
                     </div>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        <Dialog open={Boolean(selectedMember)} onOpenChange={() => setSelectedMember(null)}>
+          <DialogContent className="max-w-sm rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Profile Detail</DialogTitle>
+            </DialogHeader>
+
+            {selectedMember && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-14 h-14">
+                    <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
+                    <AvatarFallback>{selectedMember.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-bold">{selectedMember.name}</p>
+                    <Badge variant={selectedMember.role === 'teacher' ? 'secondary' : 'outline'}>
+                      {selectedMember.role === 'teacher' ? 'Subject Teacher' : 'Student'}
+                    </Badge>
                   </div>
-                </TabsContent>
-              </motion.div>
-            </AnimatePresence>
-          </Tabs>
-        </div>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="w-4 h-4" />
+                    <span>{selectedMember.email || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <School className="w-4 h-4" />
+                    <span>{selectedMember.school || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <GraduationCap className="w-4 h-4" />
+                    <span>{selectedMember.grade || '-'}</span>
+                  </div>
+                  {selectedMember.subject && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <BookOpenCheck className="w-4 h-4" />
+                      <span>{selectedMember.subject}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-primary mt-0.5" />
+                  This popup uses each member's latest registered profile data.
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
 };
-
-interface KanbanSectionProps {
-  title: string;
-  count: number;
-  tasks: typeof mockSubTasks;
-  color: string;
-}
-
-const KanbanSection: React.FC<KanbanSectionProps> = ({ title, count, tasks, color }) => (
-  <div className="space-y-3">
-    <div className="flex items-center justify-between px-2">
-      <div className="flex items-center gap-2">
-        <h4 className="font-bold text-sm">{title}</h4>
-        <Badge variant="secondary" className={`rounded-full px-2 py-0 h-5 text-[10px] ${color}`}>
-          {count}
-        </Badge>
-      </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8">
-        <Plus className="w-4 h-4 text-muted-foreground" />
-      </Button>
-    </div>
-    
-    <div className="space-y-3">
-      {tasks.map((task) => (
-        <Card key={task.id} className="p-3 border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-          <div className="flex justify-between items-start mb-2">
-            <h5 className="text-sm font-semibold">{task.title}</h5>
-            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
-              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-3">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-orange-400" />
-              {formatDateThai(task.deadline).split(',')[0]}
-            </div>
-            {task.files > 0 && (
-              <div className="flex items-center gap-1">
-                <Paperclip className="w-3 h-3" />
-                {task.files} ไฟล์
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-2">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-5 h-5">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${task.assignee}`} />
-                <AvatarFallback>{task.assignee[0]}</AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] font-medium">{task.assignee}</span>
-            </div>
-            {task.status === 'done' ? (
-              <CheckCircle2 className="w-4 h-4 text-secondary" />
-            ) : (
-              <div className="w-4 h-4 rounded-full border-2 border-muted" />
-            )}
-          </div>
-        </Card>
-      ))}
-      {tasks.length === 0 && (
-        <div className="text-center py-4 border-2 border-dashed rounded-2xl opacity-40">
-          <p className="text-xs">ไม่มีงานในส่วนนี้</p>
-        </div>
-      )}
-    </div>
-  </div>
-);
 
 export default GroupPage;

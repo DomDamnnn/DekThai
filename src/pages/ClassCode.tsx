@@ -1,27 +1,86 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { School, HelpCircle, ChevronLeft } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib';
 import { Layout } from '@/components/Layout';
-import { ClassCodeForm } from '@/components/Forms';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
 
-/**
- * ClassCode Page
- * Allows students to enter a classroom code provided by their teacher.
- * This is a critical step in the onboarding flow to connect students with their school system.
- */
 const ClassCode: React.FC = () => {
   const navigate = useNavigate();
+  const { student, joinClass, cancelJoinRequest, findClassroomByCode } = useAuth();
+  const { toast } = useToast();
+  const [classCode, setClassCode] = useState('');
+  const [isLeavingClassroom, setIsLeavingClassroom] = useState(false);
 
-  const handleJoinClass = (code: string) => {
-    // In a production environment, this would involve an API call to validate the code
-    // and link the student to the classroom record.
-    console.log('Attempting to join classroom with code:', code);
-    
-    // Navigate to the Pending page where the student waits for teacher approval
-    navigate(ROUTE_PATHS.PENDING);
+  const handleJoinClass = async (code: string) => {
+    if (!student) {
+      navigate(ROUTE_PATHS.LOGIN);
+      return;
+    }
+
+    if (student.role === 'teacher') {
+      toast({
+        title: 'Teacher account',
+        description: 'Teacher accounts do not need to join via class code.',
+      });
+      navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
+      return;
+    }
+
+    try {
+      const found = await findClassroomByCode(code);
+
+      if (!found) {
+        toast({
+          title: 'Class code not found',
+          description: 'Please check and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await joinClass(found.code, { grade: found.gradeRoom, school: found.school });
+      toast({
+        title: 'Joined classroom',
+        description: `You joined ${found.gradeRoom}.`,
+      });
+      navigate(ROUTE_PATHS.HOME);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Unable to load classroom data.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLeaveClassroom = async () => {
+    if (!student || student.role !== 'student' || !student.classCode || isLeavingClassroom) return;
+    const confirmed = window.confirm(
+      `Leave classroom ${student.classCode}? You can join again anytime using class code.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsLeavingClassroom(true);
+      await cancelJoinRequest();
+      toast({
+        title: 'Left classroom',
+        description: 'You can now join another classroom.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Unable to leave classroom.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLeavingClassroom(false);
+    }
   };
 
   return (
@@ -33,7 +92,6 @@ const ClassCode: React.FC = () => {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md space-y-8"
         >
-          {/* Header Section */}
           <div className="text-center space-y-6">
             <div className="flex justify-center">
               <motion.div
@@ -54,33 +112,62 @@ const ClassCode: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                เข้าร่วมห้องเรียน
-              </h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Join Classroom</h1>
               <p className="text-muted-foreground">
-                กรอกรหัส Class Code 6 หลักที่ได้รับจากคุณครู <br />
-                เพื่อเชื่อมต่อข้อมูลวิชาและงานของคุณ
+                Enter the class code from your teacher
+                <br />
+                to connect your tasks and subjects.
               </p>
             </div>
           </div>
 
-          {/* Form Section */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
             className="bg-card p-6 rounded-[2rem] border border-border shadow-xl shadow-black/[0.03] relative overflow-hidden"
           >
-            {/* Decorative background element */}
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
-            
-            <div className="relative z-10">
-              <ClassCodeForm onSubmit={handleJoinClass} />
+
+            <div className="relative z-10 space-y-4">
+              {student?.role === 'student' && student.classCode && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+                  <p className="text-xs text-muted-foreground">Current classroom</p>
+                  <p className="text-base font-bold tracking-wider">{student.classCode}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+                    onClick={handleLeaveClassroom}
+                    disabled={isLeavingClassroom}
+                  >
+                    {isLeavingClassroom ? 'Leaving...' : 'Leave classroom'}
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold">Class Code</h2>
+                <p className="text-sm text-muted-foreground">
+                  Enter the code exactly as your teacher shared it.
+                </p>
+              </div>
+              <Input
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value)}
+                placeholder="ABC-123"
+                className="h-12 rounded-2xl text-base font-mono tracking-wider uppercase"
+              />
+              <Button
+                className="w-full h-12 rounded-2xl"
+                disabled={!classCode.trim()}
+                onClick={() => handleJoinClass(classCode)}
+              >
+                Join classroom
+              </Button>
             </div>
           </motion.div>
 
-          {/* Secondary Actions */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -89,34 +176,34 @@ const ClassCode: React.FC = () => {
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-border"></div>
               <span className="flex-shrink mx-4 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                พบปัญหาใช่ไหม?
+                Need help?
               </span>
               <div className="flex-grow border-t border-border"></div>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="rounded-2xl h-14 flex items-center justify-center gap-3 border-dashed hover:bg-accent"
               >
                 <HelpCircle className="w-5 h-5 text-primary" />
-                <span className="font-medium">ฉันไม่มีรหัสห้องเรียน</span>
+                <span className="font-medium">I do not have a class code</span>
               </Button>
 
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="rounded-2xl h-12 text-muted-foreground hover:text-foreground"
                 onClick={() => navigate(ROUTE_PATHS.REGISTER)}
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
-                กลับไปแก้ไขข้อมูลส่วนตัว
+                Back to edit profile info
               </Button>
             </div>
           </motion.div>
 
-          {/* Footer Info */}
           <p className="text-[13px] text-center text-muted-foreground leading-relaxed px-4">
-            การเข้าร่วมห้องเรียนช่วยให้คุณได้รับการแจ้งเตือนงานทันทีเมื่อคุณครูมอบหมาย และระบบ Smart Priority จะเริ่มจัดลำดับงานให้คุณโดยอัตโนมัติ
+            After joining classroom, assigned tasks are synced automatically and Priority AI
+            can immediately rank your work.
           </p>
         </motion.div>
       </div>
