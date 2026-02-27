@@ -6,7 +6,10 @@ import {
   Mail, 
   Lock, 
   User,
+  ArrowLeft,
   Briefcase,
+  KeyRound,
+  RefreshCcw,
   School, 
   GraduationCap, 
   Hash, 
@@ -111,19 +114,149 @@ const registerSchema = z.object({
   }
 });
 
-type RegisterValues = z.infer<typeof registerSchema>;
+export type RegisterValues = z.infer<typeof registerSchema>;
 
-export function RegisterForm({ onSubmit }: { onSubmit: (data: RegisterValues) => void }) {
+type RegisterFormProps = {
+  onRequestOtp: (data: RegisterValues) => Promise<void> | void;
+  onVerifyOtp: (data: RegisterValues & { emailOtp: string }) => Promise<void> | void;
+  onResendOtp?: (email: string) => Promise<void> | void;
+};
+
+export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: RegisterFormProps) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: 'teacher',
     },
   });
+
   const role = watch('role');
+  const [step, setStep] = React.useState<'details' | 'otp'>('details');
+  const [pendingData, setPendingData] = React.useState<RegisterValues | null>(null);
+  const [emailOtp, setEmailOtp] = React.useState('');
+  const [otpError, setOtpError] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleRequestOtp = handleSubmit(async (values) => {
+    setIsSubmitting(true);
+    setOtpError('');
+    try {
+      await onRequestOtp(values);
+      setPendingData(values);
+      setEmailOtp('');
+      setStep('otp');
+    } catch {
+      // Error toast is handled by the page-level callback.
+    } finally {
+      setIsSubmitting(false);
+    }
+  });
+
+  const handleVerifyOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!pendingData) return;
+    if (!emailOtp.trim()) {
+      setOtpError('Please enter verification code.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setOtpError('');
+    try {
+      await onVerifyOtp({
+        ...pendingData,
+        emailOtp: emailOtp.trim(),
+      });
+    } catch {
+      // Error toast is handled by the page-level callback.
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!pendingData?.email) return;
+    setIsSubmitting(true);
+    setOtpError('');
+    try {
+      if (onResendOtp) {
+        await onResendOtp(pendingData.email);
+      } else {
+        await onRequestOtp(pendingData);
+      }
+    } catch {
+      // Error toast is handled by the page-level callback.
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (step === 'otp' && pendingData) {
+    return (
+      <form onSubmit={handleVerifyOtp} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="emailOtp">Verification Code</Label>
+          <p className="text-xs text-muted-foreground">
+            We sent a code to <span className="font-medium text-foreground">{pendingData.email}</span>
+          </p>
+          {import.meta.env.DEV && (
+            <p className="text-xs text-amber-600">
+              Dev mode test code: 123456
+            </p>
+          )}
+          <div className="relative">
+            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="emailOtp"
+              placeholder="Enter email verification code"
+              className="pl-10 rounded-xl tracking-widest"
+              value={emailOtp}
+              onChange={(event) => setEmailOtp(event.target.value)}
+              autoComplete="one-time-code"
+            />
+          </div>
+          {otpError && <p className="text-xs text-destructive">{otpError}</p>}
+        </div>
+
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold"
+        >
+          Verify & Create Account
+        </Button>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            className="rounded-xl"
+            onClick={handleResendOtp}
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Resend Code
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isSubmitting}
+            className="rounded-xl"
+            onClick={() => {
+              setStep('details');
+              setOtpError('');
+            }}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Change Email
+          </Button>
+        </div>
+      </form>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleRequestOtp} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
         <Select onValueChange={(val: 'teacher' | 'student') => setValue('role', val, { shouldValidate: true })} defaultValue="teacher">
@@ -206,9 +339,10 @@ export function RegisterForm({ onSubmit }: { onSubmit: (data: RegisterValues) =>
 
       <Button
         type="submit"
+        disabled={isSubmitting}
         className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold"
       >
-        Create Account
+        Send Verification Code
       </Button>
     </form>
   );

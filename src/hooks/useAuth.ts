@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 type RegisterPayload = Partial<Student> & {
   password?: string;
+  emailOtp?: string;
 };
 
 type CreateClassroomPayload = {
@@ -77,6 +78,7 @@ type ClassroomFinder = Pick<ManagedClassroom, "code" | "gradeRoom" | "school">;
 const normalizeClassCode = (code: string) => code.trim().toUpperCase();
 const toUnique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const DEV_FALLBACK_EMAIL_OTP = "123456";
 
 const createAvatarFromSeed = (seed: string) =>
   `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
@@ -428,6 +430,32 @@ export const useAuth = () => {
     return synced;
   }, [syncFromCloud]);
 
+  const requestRegisterEmailOtp = useCallback(async (emailInput: string) => {
+    setIsLoading(true);
+    await delay(250);
+
+    const email = emailInput.trim().toLowerCase();
+    if (!email) {
+      setIsLoading(false);
+      throw new Error("Email is required.");
+    }
+
+    const otpResult = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (otpResult.error) {
+      setIsLoading(false);
+      throw new Error(otpResult.error.message || "Unable to send verification code.");
+    }
+
+    setIsLoading(false);
+    return { email };
+  }, []);
+
   const register = useCallback(
     async (data: RegisterPayload) => {
       setIsLoading(true);
@@ -435,6 +463,7 @@ export const useAuth = () => {
 
       const email = (data.email || "").trim().toLowerCase();
       const password = data.password || "";
+      const emailOtp = (data.emailOtp || "").trim();
       if (!email) {
         setIsLoading(false);
         throw new Error("Email is required.");
@@ -443,21 +472,79 @@ export const useAuth = () => {
         setIsLoading(false);
         throw new Error("Password must be at least 6 characters.");
       }
-
-      const signUpResult = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpResult.error) {
+      if (!emailOtp) {
         setIsLoading(false);
-        throw new Error(signUpResult.error.message || "Unable to create account.");
+        throw new Error("Verification code is required.");
       }
 
-      const userId = signUpResult.data.user?.id;
-      if (!userId) {
+      const isDevFallbackOtp = import.meta.env.DEV && emailOtp === DEV_FALLBACK_EMAIL_OTP;
+      let userId = "";
+
+      if (isDevFallbackOtp) {
+        const signUpResult = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (signUpResult.error) {
+          setIsLoading(false);
+          throw new Error(signUpResult.error.message || "Unable to create account in dev fallback mode.");
+        }
+
+        userId = signUpResult.data.user?.id || "";
+        if (!userId) {
+          setIsLoading(false);
+          throw new Error("Dev fallback signup succeeded but user is unavailable.");
+        }
+
+        if (!signUpResult.data.session) {
+          const signInResult = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInResult.error) {
+            setIsLoading(false);
+            throw new Error(
+              "Dev fallback code accepted but this project still requires email confirmation. Disable email confirm in local Supabase Auth settings for dev fallback."
+            );
+          }
+        }
+      } else {
+        const verifyResult = await supabase.auth.verifyOtp({
+          email,
+          token: emailOtp,
+          type: "email",
+        });
+
+        if (verifyResult.error) {
+          setIsLoading(false);
+          throw new Error(verifyResult.error.message || "Unable to verify email code.");
+        }
+
+        userId = verifyResult.data.user?.id || "";
+        if (!userId) {
+          setIsLoading(false);
+          throw new Error("Email verified but user session is unavailable.");
+        }
+
+        const passwordResult = await supabase.auth.updateUser({ password });
+        if (passwordResult.error) {
+          setIsLoading(false);
+          throw new Error(passwordResult.error.message || "Unable to set account password.");
+        }
+      }
+
+      const existingProfileResult = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle<{ id: string }>();
+      if (existingProfileResult.error) {
         setIsLoading(false);
-        throw new Error("Account created but user session is unavailable.");
+        throw new Error(existingProfileResult.error.message || "Unable to verify account profile.");
+      }
+      if (existingProfileResult.data?.id) {
+        setIsLoading(false);
+        throw new Error("This email is already registered. Please sign in.");
       }
 
       const profilePayload = buildProfileInsertPayload(data, userId, email);
@@ -468,23 +555,9 @@ export const useAuth = () => {
         },
         { onConflict: "id" }
       );
-
       if (upsertResult.error) {
         setIsLoading(false);
         throw new Error(upsertResult.error.message || "Unable to save profile.");
-      }
-
-      if (!signUpResult.data.session) {
-        const signInResult = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInResult.error) {
-          setIsLoading(false);
-          throw new Error(
-            "Account created. Please verify your email, then login."
-          );
-        }
       }
 
       const synced = await syncFromCloud();
@@ -834,6 +907,7 @@ export const useAuth = () => {
     hasNoClass,
     isTeacher,
     login,
+    requestRegisterEmailOtp,
     logout,
     register,
     joinClass,

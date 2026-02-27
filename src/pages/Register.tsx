@@ -3,16 +3,33 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ROUTE_PATHS } from '@/lib/index';
 import { Layout } from '@/components/Layout';
-import { RegisterForm } from '@/components/Forms';
+import { RegisterForm, RegisterValues } from '@/components/Forms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, requestRegisterEmailOtp } = useAuth();
   const { toast } = useToast();
 
-  const handleRegisterSubmit = async (data: any) => {
+  const handleRequestOtp = async (data: RegisterValues) => {
+    try {
+      await requestRegisterEmailOtp(data.email);
+      toast({
+        title: 'Verification code sent',
+        description: `Please check ${data.email} and enter the code.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Send code failed',
+        description: error?.message || 'Unable to send verification code.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const handleRegisterSubmit = async (data: RegisterValues & { emailOtp: string }) => {
     try {
       const user = await register(data);
       toast({
@@ -26,10 +43,28 @@ const Register: React.FC = () => {
       navigate(ROUTE_PATHS.CLASS_CODE);
     } catch (error: any) {
       toast({
-        title: 'Register failed',
+        title: 'Verify failed',
         description: error?.message || 'Unable to create account.',
         variant: 'destructive',
       });
+      throw error;
+    }
+  };
+
+  const handleResendOtp = async (email: string) => {
+    try {
+      await requestRegisterEmailOtp(email);
+      toast({
+        title: 'Verification code sent again',
+        description: `A new code was sent to ${email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Resend failed',
+        description: error?.message || 'Unable to resend verification code.',
+        variant: 'destructive',
+      });
+      throw error;
     }
   };
 
@@ -55,7 +90,11 @@ const Register: React.FC = () => {
           </div>
 
           <div className="bg-card border border-border rounded-[24px] p-6 shadow-sm mb-6">
-            <RegisterForm onSubmit={handleRegisterSubmit} />
+            <RegisterForm
+              onRequestOtp={handleRequestOtp}
+              onVerifyOtp={handleRegisterSubmit}
+              onResendOtp={handleResendOtp}
+            />
           </div>
 
           <div className="text-center">
