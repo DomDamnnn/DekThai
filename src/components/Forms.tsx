@@ -2,23 +2,20 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Mail, 
-  Lock, 
+import {
+  Mail,
+  Lock,
   User,
   ArrowLeft,
   Briefcase,
   KeyRound,
   RefreshCcw,
-  School, 
-  GraduationCap, 
-  Hash, 
-  BookOpen, 
-  Calendar, 
-  Clock, 
-  FileText, 
+  School,
+  Hash,
+  BookOpen,
+  Calendar,
+  Clock,
   Send,
-  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,32 +23,40 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Task,
-  TaskType,
-  TaskChannel,
-  TaskStatus
-} from '@/lib/index';
+import { Task } from '@/lib/index';
+import { useLocale } from '@/hooks/useLocale';
 
 const isTestOtpEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
 
-// --- Login Form ---
-const loginSchema = z.object({
-  identifier: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must contain at least 6 characters'),
-});
+const buildLoginSchema = (th: boolean) =>
+  z.object({
+    identifier: z.string().email(th ? 'กรุณากรอกอีเมลให้ถูกต้อง' : 'Please enter a valid email'),
+    password: z
+      .string()
+      .min(6, th ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : 'Password must contain at least 6 characters'),
+  });
 
-type LoginValues = z.infer<typeof loginSchema>;
+export type LoginValues = {
+  identifier: string;
+  password: string;
+};
 
 export function LoginForm({ onSubmit }: { onSubmit: (data: LoginValues) => void }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>({
+  const { th, tx } = useLocale();
+  const loginSchema = React.useMemo(() => buildLoginSchema(th), [th]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
   });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="identifier">Email</Label>
+        <Label htmlFor="identifier">{tx('อีเมล', 'Email')}</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -65,13 +70,13 @@ export function LoginForm({ onSubmit }: { onSubmit: (data: LoginValues) => void 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{tx('รหัสผ่าน', 'Password')}</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             id="password"
             type="password"
-            placeholder="Enter password"
+            placeholder={tx('กรอกรหัสผ่าน', 'Enter password')}
             className="pl-10 rounded-xl"
             {...register('password')}
           />
@@ -83,40 +88,52 @@ export function LoginForm({ onSubmit }: { onSubmit: (data: LoginValues) => void 
         type="submit"
         className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:opacity-90 transition-opacity"
       >
-        Login
+        {tx('เข้าสู่ระบบ', 'Login')}
       </Button>
     </form>
   );
 }
 
-// --- Register Form ---
-const registerSchema = z.object({
-  role: z.enum(['teacher', 'student']),
-  nickname: z.string().min(1, 'Please enter display name'),
-  school: z.string().min(1, 'Please enter school name'),
-  grade: z.string().optional(),
-  subject: z.string().optional(),
-  email: z.string().email('Email is invalid'),
-  password: z.string().min(6, 'Password must contain at least 6 characters'),
-}).superRefine((values, ctx) => {
-  if (values.role === 'student' && !values.grade) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['grade'],
-      message: 'Please select student grade',
-    });
-  }
+export type RegisterValues = {
+  role: 'teacher' | 'student';
+  nickname: string;
+  school: string;
+  grade?: string;
+  subject?: string;
+  email: string;
+  password: string;
+};
 
-  if (values.role === 'teacher' && !values.subject?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['subject'],
-      message: 'Please enter teaching subject',
-    });
-  }
-});
+const buildRegisterSchema = (th: boolean) =>
+  z
+    .object({
+      role: z.enum(['teacher', 'student']),
+      nickname: z.string().min(1, th ? 'กรุณากรอกชื่อที่แสดง' : 'Please enter display name'),
+      school: z.string().min(1, th ? 'กรุณากรอกชื่อโรงเรียน' : 'Please enter school name'),
+      grade: z.string().optional(),
+      subject: z.string().optional(),
+      email: z.string().email(th ? 'อีเมลไม่ถูกต้อง' : 'Email is invalid'),
+      password: z
+        .string()
+        .min(6, th ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : 'Password must contain at least 6 characters'),
+    })
+    .superRefine((values, ctx) => {
+      if (values.role === 'student' && !values.grade) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['grade'],
+          message: th ? 'กรุณาเลือกระดับชั้น' : 'Please select student grade',
+        });
+      }
 
-export type RegisterValues = z.infer<typeof registerSchema>;
+      if (values.role === 'teacher' && !values.subject?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['subject'],
+          message: th ? 'กรุณากรอกรายวิชาที่สอน' : 'Please enter teaching subject',
+        });
+      }
+    });
 
 type RegisterFormProps = {
   onRequestOtp: (data: RegisterValues) => Promise<void> | void;
@@ -125,7 +142,16 @@ type RegisterFormProps = {
 };
 
 export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: RegisterFormProps) {
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<RegisterValues>({
+  const { th, tx } = useLocale();
+  const registerSchema = React.useMemo(() => buildRegisterSchema(th), [th]);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: 'teacher',
@@ -158,7 +184,7 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
     event.preventDefault();
     if (!pendingData) return;
     if (!emailOtp.trim()) {
-      setOtpError('Please enter verification code.');
+      setOtpError(tx('กรุณากรอกรหัสยืนยัน', 'Please enter verification code.'));
       return;
     }
 
@@ -197,20 +223,21 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
     return (
       <form onSubmit={handleVerifyOtp} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="emailOtp">Verification Code</Label>
+          <Label htmlFor="emailOtp">{tx('รหัสยืนยัน', 'Verification Code')}</Label>
           <p className="text-xs text-muted-foreground">
-            We sent a code to <span className="font-medium text-foreground">{pendingData.email}</span>
+            {tx('เราได้ส่งรหัสไปที่', 'We sent a code to')}{' '}
+            <span className="font-medium text-foreground">{pendingData.email}</span>
           </p>
           {isTestOtpEnabled && (
             <p className="text-xs text-amber-600">
-              Test code: 123456
+              {tx('รหัสทดสอบ', 'Test code')}: 123456
             </p>
           )}
           <div className="relative">
             <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               id="emailOtp"
-              placeholder="Enter email verification code"
+              placeholder={tx('กรอกรหัสยืนยันจากอีเมล', 'Enter email verification code')}
               className="pl-10 rounded-xl tracking-widest"
               value={emailOtp}
               onChange={(event) => setEmailOtp(event.target.value)}
@@ -225,7 +252,7 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
           disabled={isSubmitting}
           className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold"
         >
-          Verify & Create Account
+          {tx('ยืนยันและสร้างบัญชี', 'Verify & Create Account')}
         </Button>
 
         <div className="grid grid-cols-2 gap-2">
@@ -237,7 +264,7 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
             onClick={handleResendOtp}
           >
             <RefreshCcw className="mr-2 h-4 w-4" />
-            Resend Code
+            {tx('ส่งรหัสอีกครั้ง', 'Resend Code')}
           </Button>
           <Button
             type="button"
@@ -250,7 +277,7 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
             }}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Change Email
+            {tx('เปลี่ยนอีเมล', 'Change Email')}
           </Button>
         </div>
       </form>
@@ -260,34 +287,34 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
   return (
     <form onSubmit={handleRequestOtp} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="role">Role</Label>
+        <Label htmlFor="role">{tx('บทบาท', 'Role')}</Label>
         <Select onValueChange={(val: 'teacher' | 'student') => setValue('role', val, { shouldValidate: true })} defaultValue="teacher">
           <SelectTrigger className="rounded-xl">
-            <SelectValue placeholder="Choose role" />
+            <SelectValue placeholder={tx('เลือกบทบาท', 'Choose role')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="teacher">Teacher</SelectItem>
-            <SelectItem value="student">Student</SelectItem>
+            <SelectItem value="teacher">{tx('ครู', 'Teacher')}</SelectItem>
+            <SelectItem value="student">{tx('นักเรียน', 'Student')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="nickname">Display Name</Label>
+          <Label htmlFor="nickname">{tx('ชื่อที่แสดง', 'Display Name')}</Label>
           <div className="relative">
             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input id="nickname" placeholder="Your name" className="pl-10 rounded-xl" {...register('nickname')} />
+            <Input id="nickname" placeholder={tx('ชื่อของคุณ', 'Your name')} className="pl-10 rounded-xl" {...register('nickname')} />
           </div>
           {errors.nickname && <p className="text-xs text-destructive">{errors.nickname.message}</p>}
         </div>
 
         {role === 'student' ? (
           <div className="space-y-2">
-            <Label htmlFor="grade">Grade</Label>
+            <Label htmlFor="grade">{tx('ระดับชั้น', 'Grade')}</Label>
             <Select onValueChange={(val) => setValue('grade', val, { shouldValidate: true })}>
               <SelectTrigger className="rounded-xl">
-                <SelectValue placeholder="Select grade" />
+                <SelectValue placeholder={tx('เลือกระดับชั้น', 'Select grade')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="M.1">M.1</SelectItem>
@@ -302,10 +329,15 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">{tx('รายวิชา', 'Subject')}</Label>
             <div className="relative">
               <Briefcase className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input id="subject" placeholder="Math, Physics, Thai..." className="pl-10 rounded-xl" {...register('subject')} />
+              <Input
+                id="subject"
+                placeholder={tx('คณิต ฟิสิกส์ ภาษาไทย...', 'Math, Physics, Thai...')}
+                className="pl-10 rounded-xl"
+                {...register('subject')}
+              />
             </div>
             {errors.subject && <p className="text-xs text-destructive">{errors.subject.message}</p>}
           </div>
@@ -313,16 +345,16 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="school">School</Label>
+        <Label htmlFor="school">{tx('โรงเรียน', 'School')}</Label>
         <div className="relative">
           <School className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input id="school" placeholder="School name" className="pl-10 rounded-xl" {...register('school')} />
+          <Input id="school" placeholder={tx('ชื่อโรงเรียน', 'School name')} className="pl-10 rounded-xl" {...register('school')} />
         </div>
         {errors.school && <p className="text-xs text-destructive">{errors.school.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{tx('อีเมล', 'Email')}</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input id="email" type="email" placeholder="example@email.com" className="pl-10 rounded-xl" {...register('email')} />
@@ -331,10 +363,16 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{tx('รหัสผ่าน', 'Password')}</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input id="password" type="password" placeholder="Enter password" className="pl-10 rounded-xl" {...register('password')} />
+          <Input
+            id="password"
+            type="password"
+            placeholder={tx('กรอกรหัสผ่าน', 'Enter password')}
+            className="pl-10 rounded-xl"
+            {...register('password')}
+          />
         </div>
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
@@ -344,26 +382,27 @@ export function RegisterForm({ onRequestOtp, onVerifyOtp, onResendOtp }: Registe
         disabled={isSubmitting}
         className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold"
       >
-        Send Verification Code
+        {tx('ส่งรหัสยืนยัน', 'Send Verification Code')}
       </Button>
     </form>
   );
 }
-// --- Class Code Form ---
+
 export function ClassCodeForm({ onSubmit }: { onSubmit: (code: string) => void }) {
+  const { tx } = useLocale();
   const [code, setCode] = React.useState('');
 
   return (
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
-        <CardTitle className="text-lg">Enter Class Code</CardTitle>
-        <CardDescription>Use the class code from your teacher to join the classroom.</CardDescription>
+        <CardTitle className="text-lg">{tx('กรอกรหัสห้องเรียน', 'Enter Class Code')}</CardTitle>
+        <CardDescription>{tx('ใช้รหัสที่ครูให้เพื่อเข้าร่วมห้องเรียน', 'Use the class code from your teacher to join the classroom.')}</CardDescription>
       </CardHeader>
       <CardContent className="px-0 pb-0 space-y-4">
         <div className="relative">
           <Hash className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Example: ABC-123"
+            placeholder={tx('ตัวอย่าง: ABC-123', 'Example: ABC-123')}
             className="pl-10 h-12 rounded-2xl text-lg font-mono tracking-widest uppercase"
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -374,42 +413,61 @@ export function ClassCodeForm({ onSubmit }: { onSubmit: (code: string) => void }
           onClick={() => code && onSubmit(code)}
           disabled={!code}
         >
-          Join Class
+          {tx('เข้าร่วมห้องเรียน', 'Join Class')}
         </Button>
       </CardContent>
     </Card>
   );
 }
 
-// --- Task Form ---
-const taskSchema = z.object({
-  title: z.string().min(1, "Please enter task title"),
-  subject: z.string().min(1, "Please enter subject"),
-  deadline: z.string().min(1, "Please select deadline"),
-  type: z.enum(["File", "Photo", "Paper", "Link"]),
-  channel: z.enum(["In App", "Google Classroom", "Submit in classroom"]),
-  estimatedMinutes: z.number().min(5, "Minimum 5 minutes"),
-  description: z.string().optional(),
-});
+type TaskValues = {
+  title: string;
+  subject: string;
+  deadline: string;
+  type: 'File' | 'Photo' | 'Paper' | 'Link';
+  channel: 'In App' | 'Google Classroom' | 'Submit in classroom';
+  estimatedMinutes: number;
+  description?: string;
+};
 
-type TaskValues = z.infer<typeof taskSchema>;
+const buildTaskSchema = (th: boolean) =>
+  z.object({
+    title: z.string().min(1, th ? 'กรุณากรอกชื่องาน' : 'Please enter task title'),
+    subject: z.string().min(1, th ? 'กรุณากรอกวิชา' : 'Please enter subject'),
+    deadline: z.string().min(1, th ? 'กรุณาเลือกวันกำหนดส่ง' : 'Please select deadline'),
+    type: z.enum(['File', 'Photo', 'Paper', 'Link']),
+    channel: z.enum(['In App', 'Google Classroom', 'Submit in classroom']),
+    estimatedMinutes: z.number().min(5, th ? 'อย่างน้อย 5 นาที' : 'Minimum 5 minutes'),
+    description: z.string().optional(),
+  });
 
-export function TaskForm({ task, onSubmit }: { task?: Task, onSubmit: (data: any) => void }) {
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<TaskValues>({
+export function TaskForm({ task, onSubmit }: { task?: Task; onSubmit: (data: TaskValues) => void }) {
+  const { th, tx } = useLocale();
+  const taskSchema = React.useMemo(() => buildTaskSchema(th), [th]);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<TaskValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: task ? {
-      title: task.title,
-      subject: task.subject,
-      deadline: task.deadline.split('T')[0],
-      type: task.type as any,
-      channel: task.channel as any,
-      estimatedMinutes: task.estimatedMinutes,
-      description: task.description || '',
-    } : {
-      type: "File" as any,
-      channel: "In App" as any,
-      estimatedMinutes: 30,
-    },
+    defaultValues: task
+      ? {
+          title: task.title,
+          subject: task.subject,
+          deadline: task.deadline.split('T')[0],
+          type: task.type as unknown as TaskValues['type'],
+          channel: task.channel as unknown as TaskValues['channel'],
+          estimatedMinutes: task.estimatedMinutes,
+          description: task.description || '',
+        }
+      : {
+          type: 'File',
+          channel: 'In App',
+          estimatedMinutes: 30,
+        },
   });
 
   const selectedType = watch('type');
@@ -418,22 +476,22 @@ export function TaskForm({ task, onSubmit }: { task?: Task, onSubmit: (data: any
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-20">
       <div className="space-y-2">
-        <Label htmlFor="title">Task title</Label>
-        <Input id="title" placeholder="e.g. History worksheet" className="rounded-xl" {...register("title")} />
+        <Label htmlFor="title">{tx('ชื่องาน', 'Task title')}</Label>
+        <Input id="title" placeholder={tx('เช่น ใบงานประวัติศาสตร์', 'e.g. History worksheet')} className="rounded-xl" {...register('title')} />
         {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="subject">Subject</Label>
+          <Label htmlFor="subject">{tx('วิชา', 'Subject')}</Label>
           <div className="relative">
             <BookOpen className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input id="subject" placeholder="Subject..." className="pl-10 rounded-xl" {...register("subject")} />
+            <Input id="subject" placeholder={tx('วิชา...', 'Subject...')} className="pl-10 rounded-xl" {...register('subject')} />
           </div>
           {errors.subject && <p className="text-xs text-destructive">{errors.subject.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="deadline">Deadline</Label>
+          <Label htmlFor="deadline">{tx('กำหนดส่ง', 'Deadline')}</Label>
           <div className="relative">
             <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input id="deadline" type="date" className="pl-10 rounded-xl" {...register('deadline')} />
@@ -444,75 +502,68 @@ export function TaskForm({ task, onSubmit }: { task?: Task, onSubmit: (data: any
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Submission format</Label>
-          <Select 
-            defaultValue={selectedType} 
-            onValueChange={(val) => setValue('type', val as any)}
-          >
+          <Label>{tx('รูปแบบการส่ง', 'Submission format')}</Label>
+          <Select defaultValue={selectedType} onValueChange={(val) => setValue('type', val as TaskValues['type'])}>
             <SelectTrigger className="rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="File">File (PDF/Doc)</SelectItem>
-              <SelectItem value="Photo">Photo/Scan</SelectItem>
-              <SelectItem value="Paper">Paper in class</SelectItem>
-              <SelectItem value="Link">Link (URL)</SelectItem>
+              <SelectItem value="File">{tx('ไฟล์ (PDF/Doc)', 'File (PDF/Doc)')}</SelectItem>
+              <SelectItem value="Photo">{tx('รูปภาพ/สแกน', 'Photo/Scan')}</SelectItem>
+              <SelectItem value="Paper">{tx('กระดาษในห้องเรียน', 'Paper in class')}</SelectItem>
+              <SelectItem value="Link">{tx('ลิงก์ (URL)', 'Link (URL)')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Submission channel</Label>
-          <Select 
-            defaultValue={selectedChannel} 
-            onValueChange={(val) => setValue('channel', val as any)}
-          >
+          <Label>{tx('ช่องทางการส่ง', 'Submission channel')}</Label>
+          <Select defaultValue={selectedChannel} onValueChange={(val) => setValue('channel', val as TaskValues['channel'])}>
             <SelectTrigger className="rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="In App">Submit in DekThai</SelectItem>
+              <SelectItem value="In App">{tx('ส่งในแอป DekThai', 'Submit in DekThai')}</SelectItem>
               <SelectItem value="Google Classroom">Google Classroom</SelectItem>
-              <SelectItem value="Submit in classroom">Submit at classroom/teacher desk</SelectItem>
+              <SelectItem value="Submit in classroom">{tx('ส่งที่ห้องเรียน/โต๊ะครู', 'Submit at classroom/teacher desk')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="estimatedMinutes">Estimated time needed (minutes)</Label>
+        <Label htmlFor="estimatedMinutes">{tx('เวลาที่คาดว่าจะใช้ (นาที)', 'Estimated time needed (minutes)')}</Label>
         <div className="relative">
           <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            id="estimatedMinutes" 
-            type="number" 
-            className="pl-10 rounded-xl" 
-            {...register('estimatedMinutes', { valueAsNumber: true })} 
+          <Input
+            id="estimatedMinutes"
+            type="number"
+            className="pl-10 rounded-xl"
+            {...register('estimatedMinutes', { valueAsNumber: true })}
           />
         </div>
         {errors.estimatedMinutes && <p className="text-xs text-destructive">{errors.estimatedMinutes.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Details / Prompt</Label>
-        <Textarea 
-          id="description" 
-          placeholder="Add assignment details or prompt link..." 
-          className="rounded-xl min-h-[100px]" 
-          {...register('description')} 
+        <Label htmlFor="description">{tx('รายละเอียด / คำชี้แจง', 'Details / Prompt')}</Label>
+        <Textarea
+          id="description"
+          placeholder={tx('เพิ่มรายละเอียดงานหรือแนบลิงก์คำสั่งงาน...', 'Add assignment details or prompt link...')}
+          className="rounded-xl min-h-[100px]"
+          {...register('description')}
         />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50">
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full max-w-md mx-auto flex h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-lg"
         >
           <Send className="w-4 h-4 mr-2" />
-          {task ? "Save changes" : "Create task"}
+          {task ? tx('บันทึกการแก้ไข', 'Save changes') : tx('สร้างงาน', 'Create task')}
         </Button>
       </div>
     </form>
   );
 }
-
 

@@ -1,13 +1,13 @@
-import React from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Bell, CalendarDays, ClipboardCheck, ClipboardList, Home, Inbox, School, Sparkles, User, Users } from 'lucide-react';
-import { ROUTE_PATHS } from '@/lib/index';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/hooks/useAuth';
-import { useAppSettings } from '@/hooks/useAppSettings';
+import React from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { Bell, CalendarDays, ClipboardCheck, ClipboardList, Home, Inbox, Sparkles, User } from "lucide-react";
+import { ROUTE_PATHS } from "@/lib/index";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocale } from "@/hooks/useLocale";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,26 +37,26 @@ export function Layout({ children }: LayoutProps) {
 
 function AppLayout({ children }: LayoutProps) {
   const { unreadCount } = useNotifications();
-  const { student } = useAuth();
-  const { settings } = useAppSettings();
-  const th = settings.language === 'th';
+  const { student, isLoading } = useAuth();
+  const { tx } = useLocale();
 
   const studentNavItems = [
-    { label: th ? 'หน้าแรก' : 'Home', path: ROUTE_PATHS.HOME, icon: Home },
-    { label: 'WorkSpace', path: ROUTE_PATHS.WORKSPACE, icon: ClipboardList },
-    { label: 'Priority AI', path: ROUTE_PATHS.SMART_PRIORITY, icon: Sparkles },
-    { label: th ? 'โปรไฟล์' : 'Profile', path: ROUTE_PATHS.PROFILE, icon: User },
-  ];
-  const teacherNavItems = [
-    { label: th ? 'ห้องเรียน' : 'Classrooms', path: ROUTE_PATHS.TEACHER_CLASSROOMS, icon: School },
-    { label: 'Inbox', path: ROUTE_PATHS.TEACHER_INBOX, icon: Inbox },
-    { label: th ? 'นักเรียน' : 'Students', path: ROUTE_PATHS.TEACHER_STUDENTS, icon: Users },
-    { label: th ? 'งานที่สั่ง' : 'Assignments', path: ROUTE_PATHS.TEACHER_ASSIGNMENTS, icon: ClipboardCheck },
-    { label: 'Calendar', path: ROUTE_PATHS.CALENDAR, icon: CalendarDays },
-    { label: th ? 'โปรไฟล์' : 'Profile', path: ROUTE_PATHS.PROFILE, icon: User },
+    { label: tx("หน้าแรก", "Home"), path: ROUTE_PATHS.HOME, icon: Home },
+    { label: tx("งานทั้งหมด", "Workspace"), path: ROUTE_PATHS.WORKSPACE, icon: ClipboardList },
+    { label: tx("Priority AI", "Priority AI"), path: ROUTE_PATHS.SMART_PRIORITY, icon: Sparkles },
+    { label: tx("โปรไฟล์", "Profile"), path: ROUTE_PATHS.PROFILE, icon: User },
   ];
 
-  const isTeacher = student?.role === 'teacher';
+  const teacherNavItems = [
+    { label: tx("ห้องเรียน", "Classrooms"), path: ROUTE_PATHS.TEACHER_CLASSROOMS, icon: Home },
+    { label: tx("กล่องข้อความ", "Inbox"), path: ROUTE_PATHS.TEACHER_INBOX, icon: Inbox },
+    { label: tx("งานที่สั่ง", "Assignments"), path: ROUTE_PATHS.TEACHER_ASSIGNMENTS, icon: ClipboardCheck },
+    { label: tx("ปฏิทิน", "Calendar"), path: ROUTE_PATHS.CALENDAR, icon: CalendarDays },
+    { label: tx("โปรไฟล์", "Profile"), path: ROUTE_PATHS.PROFILE, icon: User },
+  ];
+
+  const isTeacher = student?.role === "teacher";
+  const shouldRenderBottomNav = Boolean(student) || !isLoading;
   const navItems = isTeacher ? teacherNavItems : studentNavItems;
   const homePath = isTeacher ? ROUTE_PATHS.TEACHER_CLASSROOMS : ROUTE_PATHS.HOME;
 
@@ -90,38 +90,45 @@ function AppLayout({ children }: LayoutProps) {
 
       <main className="flex-1 pt-16 pb-24 max-w-md mx-auto w-full px-4">{children}</main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-lg border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-md mx-auto w-full h-20 px-2 flex items-center justify-around">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center justify-center w-full h-full transition-all duration-300',
-                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div
-                    className={cn(
-                      'p-2 rounded-xl transition-all duration-300',
-                      isActive ? 'bg-primary/10 scale-110 shadow-sm' : 'bg-transparent'
-                    )}
-                  >
-                    <item.icon className={cn('w-6 h-6', isActive ? 'stroke-[2.5px]' : 'stroke-[2px]')} />
-                  </div>
-                    <span className={cn('text-[10px] mt-1 font-medium transition-all duration-300', isActive ? 'opacity-100' : 'opacity-70')}>
+      {shouldRenderBottomNav && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-lg border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <div className="max-w-md mx-auto w-full h-20 px-2 flex items-center justify-around">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  cn(
+                    "flex flex-col items-center justify-center w-full h-full transition-all duration-300",
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <div
+                      className={cn(
+                        "p-2 rounded-xl transition-all duration-300",
+                        isActive ? "bg-primary/10 scale-110 shadow-sm" : "bg-transparent"
+                      )}
+                    >
+                      <item.icon className={cn("w-6 h-6", isActive ? "stroke-[2.5px]" : "stroke-[2px]")} />
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] mt-1 font-medium transition-all duration-300",
+                        isActive ? "opacity-100" : "opacity-70"
+                      )}
+                    >
                       {item.label}
                     </span>
                   </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

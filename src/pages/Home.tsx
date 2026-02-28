@@ -15,7 +15,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { PriorityCard, StatsCard } from '@/components/Cards';
-import { ROUTE_PATHS, getTaskStatusLabel } from '@/lib/index';
+import { ROUTE_PATHS } from '@/lib/index';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { staggerContainer, staggerItem } from '@/lib/motion';
@@ -32,8 +32,7 @@ const Home: React.FC = () => {
   const activeTasks = useMemo(
     () =>
       tasks.filter((task) => {
-        const statusLabel = getTaskStatusLabel(task.status as any);
-        return statusLabel !== 'Submitted' && statusLabel !== 'Waiting review';
+        return task.status !== 'ส่งแล้ว' && task.status !== 'รอตรวจ';
       }),
     [tasks]
   );

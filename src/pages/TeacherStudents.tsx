@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { GraduationCap, Mail, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { useTeacherGuard } from "@/hooks/useTeacherGuard";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useLocale } from "@/hooks/useLocale";
 
 type StudentCard = {
   userId: string;
@@ -23,18 +23,29 @@ type StudentCard = {
 
 const TeacherStudents: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isTeacher } = useTeacherGuard();
   const { teacherClassrooms, getClassroomMembers, accounts, ROUTE_PATHS } = useAuth();
-  const { settings } = useAppSettings();
-  const th = settings.language === "th";
+  const { tx } = useLocale();
 
   const [selectedClassCode, setSelectedClassCode] = useState("");
 
   useEffect(() => {
+    const queryClassCode = (searchParams.get("classCode") || "").trim().toUpperCase();
+    if (queryClassCode) {
+      const matchedRoom = teacherClassrooms.find(
+        (room) => room.code.toUpperCase() === queryClassCode
+      );
+      if (matchedRoom && selectedClassCode !== matchedRoom.code) {
+        setSelectedClassCode(matchedRoom.code);
+        return;
+      }
+    }
+
     if (!selectedClassCode && teacherClassrooms[0]) {
       setSelectedClassCode(teacherClassrooms[0].code);
     }
-  }, [selectedClassCode, teacherClassrooms]);
+  }, [searchParams, selectedClassCode, teacherClassrooms]);
 
   const roomByCode = useMemo(
     () => new Map(teacherClassrooms.map((room) => [room.code, room])),
@@ -86,12 +97,10 @@ const TeacherStudents: React.FC = () => {
         <div className="pt-6 space-y-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
-            {th ? "รายชื่อนักเรียน" : "Student Directory"}
+            {tx("รายชื่อนักเรียน", "Student Directory")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {th
-              ? "ดูรายชื่อนักเรียนแยกตามห้องเรียน และข้อมูลโปรไฟล์สำคัญ"
-              : "View student list by classroom and access key profile details."}
+            {tx("ดูรายชื่อนักเรียนแยกตามห้องเรียน และข้อมูลโปรไฟล์สำคัญ", "View student list by classroom and access key profile details.")}
           </p>
         </div>
 
@@ -99,15 +108,13 @@ const TeacherStudents: React.FC = () => {
           <Card className="border-none shadow-sm">
             <CardContent className="p-6 space-y-3 text-center">
               <p className="text-sm text-muted-foreground">
-                {th
-                  ? "ยังไม่มีห้องเรียนที่เชื่อมไว้ กรุณาสร้างห้องก่อนจัดการนักเรียน"
-                  : "No linked classrooms yet. Create one before managing students."}
+                {tx("ยังไม่มีห้องเรียนที่เชื่อมไว้ กรุณาสร้างห้องก่อนจัดการนักเรียน", "No linked classrooms yet. Create one before managing students.")}
               </p>
               <Button
                 className="rounded-xl"
                 onClick={() => navigate(ROUTE_PATHS.TEACHER_CLASSROOMS)}
               >
-                {th ? "ไปหน้าห้องเรียน" : "Open classrooms page"}
+                {tx("ไปหน้าห้องเรียน", "Open classrooms page")}
               </Button>
             </CardContent>
           </Card>
@@ -115,10 +122,10 @@ const TeacherStudents: React.FC = () => {
           <>
             <Card className="border-none shadow-sm">
               <CardContent className="p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">{th ? "ห้องเรียน" : "Classroom"}</p>
+                <p className="text-xs font-medium text-muted-foreground">{tx("ห้องเรียน", "Classroom")}</p>
                 <Select value={selectedClassCode} onValueChange={setSelectedClassCode}>
                   <SelectTrigger>
-                    <SelectValue placeholder={th ? "เลือกรหัสห้อง" : "Select class code"} />
+                    <SelectValue placeholder={tx("เลือกรหัสห้อง", "Select class code")} />
                   </SelectTrigger>
                   <SelectContent>
                     {teacherClassrooms.map((room) => (
@@ -137,13 +144,13 @@ const TeacherStudents: React.FC = () => {
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">
-                  {th ? `นักเรียน (${students.length})` : `Students (${students.length})`}
+                  {tx(`นักเรียน (${students.length})`, `Students (${students.length})`)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {students.length === 0 && (
                   <div className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground text-center">
-                    {th ? "ยังไม่มีนักเรียนเข้าห้องเรียนนี้" : "No students joined this classroom yet."}
+                    {tx("ยังไม่มีนักเรียนเข้าห้องเรียนนี้", "No students joined this classroom yet.")}
                   </div>
                 )}
 

@@ -15,7 +15,9 @@ export const ROUTE_PATHS = {
   STACK: '/stack',
   DEK_CAMP: '/dekcamp',
   PROFILE: '/profile',
+  TEACHER_OVERVIEW: '/teacher/overview',
   TEACHER_CLASSROOMS: '/teacher/classrooms',
+  TEACHER_CLASSROOM_DETAIL: '/teacher/classrooms/:classCode',
   TEACHER_INBOX: '/teacher/inbox',
   TEACHER_STUDENTS: '/teacher/students',
   TEACHER_ASSIGNMENTS: '/teacher/assignments',
@@ -255,31 +257,35 @@ export const getStatusColor = (status: TaskStatus) => {
   }
 };
 
-export const getDeadlineStatus = (deadline: string) => {
+export const getDeadlineStatus = (deadline: string, language: 'th' | 'en' = 'en') => {
   const now = new Date();
   const due = new Date(deadline);
   const diff = due.getTime() - now.getTime();
   const hours = diff / (1000 * 60 * 60);
 
-  if (diff < 0) return { label: "Late", color: "text-destructive" };
-  if (hours < 24) return { label: "Due soon", color: "text-orange-500" };
-  return { label: "Normal", color: "text-muted-foreground" };
+  if (diff < 0) {
+    return { label: language === 'th' ? 'เลยกำหนด' : 'Late', color: 'text-destructive' };
+  }
+  if (hours < 24) {
+    return { label: language === 'th' ? 'ใกล้ถึงกำหนด' : 'Due soon', color: 'text-orange-500' };
+  }
+  return { label: language === 'th' ? 'ปกติ' : 'Normal', color: 'text-muted-foreground' };
 };
 
-export const getTaskStatusLabel = (status: TaskStatus) => {
+export const getTaskStatusLabel = (status: TaskStatus, language: 'th' | 'en' = 'en') => {
   const value = String(status);
-  if (value.includes("ยัง")) return "Not started";
-  if (value.includes("กำลัง")) return "In progress";
-  if (value.includes("พร้อม")) return "Ready to submit";
-  if (value.includes("ส่ง")) return "Submitted";
-  if (value.includes("รอ")) return "Waiting review";
-  if (value.includes("ตีก")) return "Returned";
+  if (value.includes("ยัง")) return language === 'th' ? 'ยังไม่เริ่ม' : 'Not started';
+  if (value.includes("กำลัง")) return language === 'th' ? 'กำลังทำ' : 'In progress';
+  if (value.includes("พร้อม")) return language === 'th' ? 'พร้อมส่ง' : 'Ready to submit';
+  if (value.includes("ส่ง")) return language === 'th' ? 'ส่งแล้ว' : 'Submitted';
+  if (value.includes("รอ")) return language === 'th' ? 'รอตรวจ' : 'Waiting review';
+  if (value.includes("ตีก")) return language === 'th' ? 'ตีกลับ' : 'Returned';
   return value;
 };
 
-export const formatDateThai = (dateString: string) => {
+export const formatDateThai = (dateString: string, language: 'th' | 'en' = 'th') => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('th-TH', {
+  return date.toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

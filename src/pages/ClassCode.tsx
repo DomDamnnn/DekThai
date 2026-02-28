@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
+import { useLocale } from '@/hooks/useLocale';
 
 const ClassCode: React.FC = () => {
   const navigate = useNavigate();
   const { student, joinClass, cancelJoinRequest, findClassroomByCode } = useAuth();
   const { toast } = useToast();
+  const { tx } = useLocale();
   const [classCode, setClassCode] = useState('');
   const [isLeavingClassroom, setIsLeavingClassroom] = useState(false);
 
@@ -24,8 +26,8 @@ const ClassCode: React.FC = () => {
 
     if (student.role === 'teacher') {
       toast({
-        title: 'Teacher account',
-        description: 'Teacher accounts do not need to join via class code.',
+        title: tx('บัญชีครู', 'Teacher account'),
+        description: tx('บัญชีครูไม่ต้องเข้าร่วมห้องผ่านรหัสห้องเรียน', 'Teacher accounts do not need to join via class code.'),
       });
       navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
       return;
@@ -36,8 +38,8 @@ const ClassCode: React.FC = () => {
 
       if (!found) {
         toast({
-          title: 'Class code not found',
-          description: 'Please check and try again.',
+          title: tx('ไม่พบรหัสห้องเรียน', 'Class code not found'),
+          description: tx('กรุณาตรวจสอบรหัสและลองใหม่อีกครั้ง', 'Please check and try again.'),
           variant: 'destructive',
         });
         return;
@@ -45,14 +47,14 @@ const ClassCode: React.FC = () => {
 
       await joinClass(found.code, { grade: found.gradeRoom, school: found.school });
       toast({
-        title: 'Joined classroom',
-        description: `You joined ${found.gradeRoom}.`,
+        title: tx('เข้าร่วมห้องเรียนสำเร็จ', 'Joined classroom'),
+        description: tx(`คุณเข้าร่วม ${found.gradeRoom} แล้ว`, `You joined ${found.gradeRoom}.`),
       });
       navigate(ROUTE_PATHS.HOME);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error?.message || 'Unable to load classroom data.',
+        title: tx('เกิดข้อผิดพลาด', 'Error'),
+        description: error?.message || tx('ไม่สามารถโหลดข้อมูลห้องเรียนได้', 'Unable to load classroom data.'),
         variant: 'destructive',
       });
     }
@@ -61,7 +63,10 @@ const ClassCode: React.FC = () => {
   const handleLeaveClassroom = async () => {
     if (!student || student.role !== 'student' || !student.classCode || isLeavingClassroom) return;
     const confirmed = window.confirm(
-      `Leave classroom ${student.classCode}? You can join again anytime using class code.`
+      tx(
+        `ต้องการออกจากห้อง ${student.classCode} หรือไม่? คุณสามารถเข้าร่วมใหม่ได้ตลอดด้วยรหัสห้องเรียน`,
+        `Leave classroom ${student.classCode}? You can join again anytime using class code.`
+      )
     );
     if (!confirmed) return;
 
@@ -69,13 +74,13 @@ const ClassCode: React.FC = () => {
       setIsLeavingClassroom(true);
       await cancelJoinRequest();
       toast({
-        title: 'Left classroom',
-        description: 'You can now join another classroom.',
+        title: tx('ออกจากห้องเรียนแล้ว', 'Left classroom'),
+        description: tx('ตอนนี้คุณสามารถเข้าร่วมห้องเรียนอื่นได้', 'You can now join another classroom.'),
       });
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error?.message || 'Unable to leave classroom.',
+        title: tx('เกิดข้อผิดพลาด', 'Error'),
+        description: error?.message || tx('ไม่สามารถออกจากห้องเรียนได้', 'Unable to leave classroom.'),
         variant: 'destructive',
       });
     } finally {
@@ -112,11 +117,11 @@ const ClassCode: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Join Classroom</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{tx('เข้าร่วมห้องเรียน', 'Join Classroom')}</h1>
               <p className="text-muted-foreground">
-                Enter the class code from your teacher
+                {tx('กรอกรหัสห้องเรียนที่ได้จากครู', 'Enter the class code from your teacher')}
                 <br />
-                to connect your tasks and subjects.
+                {tx('เพื่อเชื่อมต่องานและวิชาของคุณ', 'to connect your tasks and subjects.')}
               </p>
             </div>
           </div>
@@ -132,7 +137,7 @@ const ClassCode: React.FC = () => {
             <div className="relative z-10 space-y-4">
               {student?.role === 'student' && student.classCode && (
                 <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                  <p className="text-xs text-muted-foreground">Current classroom</p>
+                  <p className="text-xs text-muted-foreground">{tx('ห้องเรียนปัจจุบัน', 'Current classroom')}</p>
                   <p className="text-base font-bold tracking-wider">{student.classCode}</p>
                   <Button
                     type="button"
@@ -141,14 +146,14 @@ const ClassCode: React.FC = () => {
                     onClick={handleLeaveClassroom}
                     disabled={isLeavingClassroom}
                   >
-                    {isLeavingClassroom ? 'Leaving...' : 'Leave classroom'}
+                    {isLeavingClassroom ? tx('กำลังออก...', 'Leaving...') : tx('ออกจากห้องเรียน', 'Leave classroom')}
                   </Button>
                 </div>
               )}
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold">Class Code</h2>
+                <h2 className="text-lg font-semibold">{tx('รหัสห้องเรียน', 'Class Code')}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Enter the code exactly as your teacher shared it.
+                  {tx('กรอกรหัสให้ตรงตามที่ครูส่งให้', 'Enter the code exactly as your teacher shared it.')}
                 </p>
               </div>
               <Input
@@ -162,7 +167,7 @@ const ClassCode: React.FC = () => {
                 disabled={!classCode.trim()}
                 onClick={() => handleJoinClass(classCode)}
               >
-                Join classroom
+                {tx('เข้าร่วมห้องเรียน', 'Join classroom')}
               </Button>
             </div>
           </motion.div>
@@ -176,7 +181,7 @@ const ClassCode: React.FC = () => {
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-border"></div>
               <span className="flex-shrink mx-4 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                Need help?
+                {tx('ต้องการความช่วยเหลือ?', 'Need help?')}
               </span>
               <div className="flex-grow border-t border-border"></div>
             </div>
@@ -187,7 +192,7 @@ const ClassCode: React.FC = () => {
                 className="rounded-2xl h-14 flex items-center justify-center gap-3 border-dashed hover:bg-accent"
               >
                 <HelpCircle className="w-5 h-5 text-primary" />
-                <span className="font-medium">I do not have a class code</span>
+                <span className="font-medium">{tx('ฉันยังไม่มีรหัสห้องเรียน', 'I do not have a class code')}</span>
               </Button>
 
               <Button
@@ -196,14 +201,16 @@ const ClassCode: React.FC = () => {
                 onClick={() => navigate(ROUTE_PATHS.REGISTER)}
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
-                Back to edit profile info
+                {tx('กลับไปแก้ไขข้อมูลโปรไฟล์', 'Back to edit profile info')}
               </Button>
             </div>
           </motion.div>
 
           <p className="text-[13px] text-center text-muted-foreground leading-relaxed px-4">
-            After joining classroom, assigned tasks are synced automatically and Priority AI
-            can immediately rank your work.
+            {tx(
+              'เมื่อเข้าร่วมห้องเรียนแล้ว งานที่ครูมอบหมายจะซิงก์อัตโนมัติ และ Priority AI จะจัดลำดับงานให้ทันที',
+              'After joining classroom, assigned tasks are synced automatically and Priority AI can immediately rank your work.'
+            )}
           </p>
         </motion.div>
       </div>
@@ -212,3 +219,4 @@ const ClassCode: React.FC = () => {
 };
 
 export default ClassCode;
+

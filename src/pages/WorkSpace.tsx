@@ -16,9 +16,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '@/hooks/useTasks';
+import { useLocale } from '@/hooks/useLocale';
 
 const WorkSpace: React.FC = () => {
   const { tasks, hasClassAccess } = useTasks();
+  const { tx } = useLocale();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ทั้งหมด'>('ทั้งหมด');
   const [isSmartPriority, setIsSmartPriority] = useState(false);
@@ -81,12 +83,12 @@ const WorkSpace: React.FC = () => {
         {/* Header Section */}
         <header className="px-4 pt-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-foreground">งานของฉัน</h1>
+            <h1 className="text-2xl font-bold text-foreground">{tx('งานของฉัน', 'My Tasks')}</h1>
             <Badge variant="secondary" className="rounded-full px-3 py-1 bg-primary/10 text-primary border-none">
-              {taskCounts.pending} งานที่ต้องทำ
+              {taskCounts.pending} {tx('งานที่ต้องทำ', 'pending task(s)')}
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm">จัดการงานทั้งหมดของคุณให้เป็นระเบียบ</p>
+          <p className="text-muted-foreground text-sm">{tx('จัดการงานทั้งหมดของคุณให้เป็นระเบียบ', 'Manage all your tasks in one place')}</p>
         </header>
 
         {/* Search & Main Actions */}
@@ -94,7 +96,7 @@ const WorkSpace: React.FC = () => {
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="ค้นหางาน หรือ วิชา..."
+              placeholder={tx('ค้นหางาน หรือ วิชา...', 'Search tasks or subjects...')}
               className="pl-10 h-12 rounded-2xl bg-card border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -110,18 +112,18 @@ const WorkSpace: React.FC = () => {
               onClick={() => setIsSmartPriority(!isSmartPriority)}
             >
               <Sparkles className="w-4 h-4" />
-              Smart Priority
+              {tx('Smart Priority', 'Smart Priority')}
             </Button>
             
             <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)} disabled={isSmartPriority}>
               <SelectTrigger className="w-auto h-10 rounded-full bg-card border-none shadow-sm gap-2 text-muted-foreground">
                 <ArrowUpDown className="w-4 h-4" />
-                <SelectValue placeholder="เรียงตาม" />
+                <SelectValue placeholder={tx('เรียงตาม', 'Sort by')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="deadline">เดดไลน์ใกล้สุด</SelectItem>
-                <SelectItem value="score">คะแนนความสำคัญ</SelectItem>
-                <SelectItem value="weight">น้ำหนักคะแนนงาน</SelectItem>
+                <SelectItem value="deadline">{tx('เดดไลน์ใกล้สุด', 'Nearest deadline')}</SelectItem>
+                <SelectItem value="score">{tx('คะแนนความสำคัญ', 'Priority score')}</SelectItem>
+                <SelectItem value="weight">{tx('น้ำหนักคะแนนงาน', 'Assignment weight')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -135,11 +137,11 @@ const WorkSpace: React.FC = () => {
             onValueChange={(val) => setStatusFilter(val as TaskStatus | 'ทั้งหมด')}
           >
             <TabsList className="w-full bg-muted/50 p-1 h-12 rounded-2xl">
-              <TabsTrigger value="ทั้งหมด" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">ทั้งหมด</TabsTrigger>
-              <TabsTrigger value="ยังไม่เริ่ม" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">ยังไม่เริ่ม</TabsTrigger>
-              <TabsTrigger value="กำลังทำ" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">กำลังทำ</TabsTrigger>
+              <TabsTrigger value="ทั้งหมด" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">{tx('ทั้งหมด', 'All')}</TabsTrigger>
+              <TabsTrigger value="ยังไม่เริ่ม" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">{tx('ยังไม่เริ่ม', 'Not started')}</TabsTrigger>
+              <TabsTrigger value="กำลังทำ" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">{tx('กำลังทำ', 'In progress')}</TabsTrigger>
               <TabsTrigger value="ตีกลับ" className="flex-1 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                ตีกลับ
+                {tx('ตีกลับ', 'Returned')}
                 {taskCounts.returned > 0 && (
                   <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
                 )}
@@ -151,7 +153,7 @@ const WorkSpace: React.FC = () => {
         {!hasClassAccess && (
           <div className="px-4">
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-              เข้าห้องเรียนก่อน จึงจะเห็นงานที่ถูกมอบหมายจากครู
+              {tx('เข้าห้องเรียนก่อน จึงจะเห็นงานที่ถูกมอบหมายจากครู', 'Join a classroom first to see assigned work from teachers.')}
             </div>
           </div>
         )}
@@ -181,9 +183,9 @@ const WorkSpace: React.FC = () => {
                 <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
                   <ListFilter className="w-10 h-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">ไม่พบงานที่ค้นหา</h3>
+                <h3 className="text-lg font-semibold text-foreground">{tx('ไม่พบงานที่ค้นหา', 'No matching tasks')}</h3>
                 <p className="text-muted-foreground max-w-[200px] mx-auto text-sm">
-                  ลองเปลี่ยนคำค้นหา หรือเปลี่ยนฟิลเตอร์ดูนะ
+                  {tx('ลองเปลี่ยนคำค้นหา หรือเปลี่ยนฟิลเตอร์ดูนะ', 'Try changing your keywords or filters.')}
                 </p>
                 <Button 
                   variant="ghost" 
@@ -194,7 +196,7 @@ const WorkSpace: React.FC = () => {
                     setIsSmartPriority(false);
                   }}
                 >
-                  ล้างการค้นหา
+                  {tx('ล้างการค้นหา', 'Clear search')}
                 </Button>
               </motion.div>
             )}
@@ -206,12 +208,14 @@ const WorkSpace: React.FC = () => {
           <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] bg-card/80 backdrop-blur-md border border-border/50 py-3 px-6 rounded-full shadow-lg flex items-center justify-between z-10">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-xs font-medium text-muted-foreground">แสดง {filteredTasks.length} จาก {taskCounts.total} งาน</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                {tx(`แสดง ${filteredTasks.length} จาก ${taskCounts.total} งาน`, `Showing ${filteredTasks.length} of ${taskCounts.total} tasks`)}
+              </span>
             </div>
             {isSmartPriority && (
               <div className="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-wider">
                 <Sparkles className="w-3 h-3" />
-                AI Optimized
+                {tx('AI จัดลำดับแล้ว', 'AI Optimized')}
               </div>
             )}
           </div>

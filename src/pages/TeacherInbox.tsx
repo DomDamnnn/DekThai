@@ -179,13 +179,13 @@ const TeacherInbox: React.FC = () => {
                     key={item.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
+                    transition={{ delay: Math.min(index * 0.01, 0.08) }}
                     className="rounded-xl border border-border p-3"
                   >
                     <p className="font-semibold text-sm">{item.title}</p>
                     <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{item.message}</p>
                     <p className="text-[11px] text-muted-foreground mt-2">
-                      {item.teacherName} • {formatDateThai(item.createdAt)}
+                      {item.teacherName} • {formatDateThai(item.createdAt, settings.language)}
                     </p>
                   </motion.div>
                 ))}

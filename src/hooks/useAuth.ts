@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { AssignmentRecord, ClassroomMember, ManagedClassroom, ROUTE_PATHS, Student, TeacherAssignmentRecord } from "@/lib";
 import {
   AUTH_EVENT,
@@ -41,6 +41,10 @@ type CreateClassroomPayload = {
 type AssignTeacherPayload = {
   classCode: string;
   teacherEmail: string;
+};
+
+type JoinTeacherClassroomPayload = {
+  classCode: string;
 };
 
 type CreateTeacherAssignmentPayload = {
@@ -235,9 +239,17 @@ const applyOneTimeAuthReset = async () => {
   window.dispatchEvent(new Event(AUTH_EVENT));
 };
 
-export const useAuth = () => {
-  const [student, setStudent] = useState<Student | null>(null);
-  const [accounts, setAccounts] = useState<Student[]>([]);
+const useProvideAuth = () => {
+  const [student, setStudent] = useState<Student | null>(() => getCurrentUser(readAuthState()));
+  const [accounts, setAccounts] = useState<Student[]>(() => {
+    const initialState = readAuthState();
+    if (isTestOtpEnabled) {
+      return getLocalProfiles(initialState);
+    }
+
+    const current = getCurrentUser(initialState);
+    return current ? [current] : [];
+  });
   const [teacherClassrooms, setTeacherClassrooms] = useState<ManagedClassroom[]>([]);
   const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignmentRecord[]>([]);
   const [classroomMembersByCode, setClassroomMembersByCode] = useState<Record<string, MemberBucket>>({});
@@ -976,6 +988,48 @@ export const useAuth = () => {
     [student, syncFromCloud, teacherClassrooms]
   );
 
+  const joinTeacherClassroom = useCallback(
+    async (payload: JoinTeacherClassroomPayload) => {
+      if (!student || student.role !== "teacher") {
+        throw new Error("Only teacher accounts can join classrooms.");
+      }
+
+      const normalizedCode = normalizeClassCode(payload.classCode);
+      if (!normalizedCode) {
+        throw new Error("Class code is required.");
+      }
+
+      const classroomResult = await supabase
+        .from("classrooms")
+        .select("code, grade_room, school")
+        .eq("code", normalizedCode)
+        .maybeSingle<{ code: string; grade_room: string; school: string }>();
+      if (classroomResult.error) {
+        throw new Error(classroomResult.error.message || "Unable to verify classroom.");
+      }
+      if (!classroomResult.data) {
+        throw new Error("Classroom not found.");
+      }
+
+      const teacherId = await resolveCloudUserId();
+      const joinResult = await supabase.from("classroom_teachers").upsert(
+        [{ class_code: normalizedCode, teacher_id: teacherId }],
+        { onConflict: "class_code,teacher_id" }
+      );
+      if (joinResult.error) {
+        throw new Error(joinResult.error.message || "Unable to join classroom.");
+      }
+
+      await syncFromCloud();
+      return {
+        code: normalizeClassCode(classroomResult.data.code),
+        gradeRoom: classroomResult.data.grade_room,
+        school: classroomResult.data.school,
+      };
+    },
+    [resolveCloudUserId, student, syncFromCloud]
+  );
+
   const createClassroomAssignment = useCallback(
     async (payload: CreateTeacherAssignmentPayload) => {
       if (!student || student.role !== "teacher") {
@@ -1100,6 +1154,7 @@ export const useAuth = () => {
     updateStudent,
     createClassroom,
     assignTeacherToClassroom,
+    joinTeacherClassroom,
     createClassroomAssignment,
     createDetailedAssignment,
     teacherClassrooms,
@@ -1109,4 +1164,25 @@ export const useAuth = () => {
     findClassroomByCode,
     ROUTE_PATHS,
   };
+};
+
+type AuthContextValue = ReturnType<typeof useProvideAuth>;
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const value = useProvideAuth();
+  return createElement(AuthContext.Provider, { value }, children);
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider.");
+  }
+  return context;
 };

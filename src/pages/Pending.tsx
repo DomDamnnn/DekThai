@@ -6,9 +6,11 @@ import { Layout } from "@/components/Layout";
 import { ROUTE_PATHS } from "@/lib";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLocale } from "@/hooks/useLocale";
 
 const Pending: React.FC = () => {
   const navigate = useNavigate();
+  const { tx } = useLocale();
 
   const handleCancelRequest = () => {
     // In a real app, this would call an API
@@ -45,18 +47,20 @@ const Pending: React.FC = () => {
 
           {/* Heading */}
           <h1 className="text-2xl font-bold mb-3 text-foreground">
-            ส่งคำขอเรียบร้อยแล้ว!
+            {tx("ส่งคำขอเรียบร้อยแล้ว!", "Request sent!")}
           </h1>
           <p className="text-muted-foreground mb-8">
-            คำขอเข้าห้องเรียนของคุณกำลังรอการอนุมัติจากคุณครู
-            กรุณารอสักครู่ ระบบจะแจ้งเตือนเมื่อคุณเข้าห้องเรียนสำเร็จ
+            {tx(
+              "คำขอเข้าห้องเรียนของคุณกำลังรอการอนุมัติจากคุณครู กรุณารอสักครู่ ระบบจะแจ้งเตือนเมื่อคุณเข้าห้องเรียนสำเร็จ",
+              "Your classroom join request is waiting for teacher approval. We'll notify you once you're approved."
+            )}
           </p>
 
           {/* Info Card */}
           <Card className="mb-8 border-dashed border-2 bg-muted/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-muted-foreground font-medium">รหัสห้องเรียน</span>
+                <span className="text-sm text-muted-foreground font-medium">{tx("รหัสห้องเรียน", "Class code")}</span>
                 <span className="font-mono font-bold text-primary bg-primary/10 px-3 py-1 rounded-md">
                   DEK-2026-TH
                 </span>
@@ -66,8 +70,8 @@ const Pending: React.FC = () => {
                   <ShieldCheck className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">วิชาภาษาไทย (ม.5/1)</p>
-                  <p className="text-xs text-muted-foreground">โดย คุณครูสมชาย รักเรียน</p>
+                  <p className="text-sm font-semibold">{tx("วิชาภาษาไทย (ม.5/1)", "Thai Language (M.5/1)")}</p>
+                  <p className="text-xs text-muted-foreground">{tx("โดย คุณครูสมชาย รักเรียน", "By Teacher Somchai Rakrian")}</p>
                 </div>
               </div>
             </CardContent>
@@ -80,7 +84,7 @@ const Pending: React.FC = () => {
               onClick={() => { /* Open Chat or Support */ }}
             >
               <MessageCircle className="mr-2 h-5 w-5" />
-              ติดต่อคุณครู
+              {tx("ติดต่อคุณครู", "Contact teacher")}
             </Button>
             
             <Button 
@@ -89,7 +93,7 @@ const Pending: React.FC = () => {
               onClick={handleCancelRequest}
             >
               <XCircle className="mr-2 h-5 w-5 text-destructive" />
-              ยกเลิกคำขอ
+              {tx("ยกเลิกคำขอ", "Cancel request")}
             </Button>
           </div>
 
@@ -98,15 +102,15 @@ const Pending: React.FC = () => {
             whileHover={{ x: 5 }}
             className="mt-8 flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mx-auto"
           >
-            มีปัญหาในการเข้าห้องเรียน? <ChevronRight className="w-4 h-4" />
+            {tx("มีปัญหาในการเข้าห้องเรียน?", "Having trouble joining classroom?")} <ChevronRight className="w-4 h-4" />
           </motion.button>
         </motion.div>
 
         {/* Safety Note */}
         <p className="mt-auto text-center text-xs text-muted-foreground opacity-60">
-          ข้อมูลของคุณจะถูกเก็บเป็นความลับตามนโยบาย PDPA
+          {tx("ข้อมูลของคุณจะถูกเก็บเป็นความลับตามนโยบาย PDPA", "Your data is handled privately under PDPA policy")}
           <br />
-          © 2026 DekThai Application
+          © 2026 DekThai
         </p>
       </div>
     </Layout>

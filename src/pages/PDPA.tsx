@@ -13,12 +13,14 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/hooks/useLocale';
 
 const PDPA_CONSENT_KEY = 'dekthai_pdpa_consent_v1';
 
 const PDPA: React.FC = () => {
   const navigate = useNavigate();
   const { student } = useAuth();
+  const { tx } = useLocale();
 
   const handleAccept = () => {
     localStorage.setItem(PDPA_CONSENT_KEY, new Date().toISOString());
@@ -43,21 +45,27 @@ const PDPA: React.FC = () => {
 
   const dataItems = [
     {
-      title: 'Identity Data',
-      description:
-        'Nickname, school, and grade are used to display your profile and map assignments.',
+      title: tx('ข้อมูลระบุตัวตน', 'Identity Data'),
+      description: tx(
+        'ชื่อที่แสดง โรงเรียน และระดับชั้น ใช้เพื่อแสดงโปรไฟล์และเชื่อมงานที่ได้รับ',
+        'Nickname, school, and grade are used to display your profile and map assignments.'
+      ),
       icon: <Info className="w-5 h-5 text-primary" />,
     },
     {
-      title: 'Contact Data',
-      description:
-        'Email or phone number is used for notifications and account recovery.',
+      title: tx('ข้อมูลติดต่อ', 'Contact Data'),
+      description: tx(
+        'อีเมลหรือเบอร์โทร ใช้สำหรับการแจ้งเตือนและการกู้คืนบัญชี',
+        'Email or phone number is used for notifications and account recovery.'
+      ),
       icon: <Lock className="w-5 h-5 text-primary" />,
     },
     {
-      title: 'Learning Data',
-      description:
-        'Assignments and deadlines are used by Priority AI to rank your tasks.',
+      title: tx('ข้อมูลการเรียน', 'Learning Data'),
+      description: tx(
+        'ข้อมูลงานและกำหนดส่ง ถูกใช้โดย Priority AI เพื่อจัดลำดับความสำคัญของงาน',
+        'Assignments and deadlines are used by Priority AI to rank your tasks.'
+      ),
       icon: <CheckCircle2 className="w-5 h-5 text-primary" />,
     },
   ];
@@ -74,23 +82,29 @@ const PDPA: React.FC = () => {
           >
             <ShieldCheck size={32} />
           </motion.div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Privacy Policy</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{tx('นโยบายความเป็นส่วนตัว', 'Privacy Policy')}</h1>
           <p className="text-muted-foreground">
-            DekThai protects student data and uses only what is needed for learning workflows.
+            {tx(
+              'DekThai ปกป้องข้อมูลนักเรียน และใช้เฉพาะข้อมูลที่จำเป็นต่อกระบวนการเรียนรู้',
+              'DekThai protects student data and uses only what is needed for learning workflows.'
+            )}
           </p>
         </div>
 
         <Card className="border-none shadow-sm mb-6 bg-accent/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Summary</CardTitle>
+            <CardTitle className="text-lg">{tx('สรุปโดยย่อ', 'Summary')}</CardTitle>
             <CardDescription>
-              We collect limited data to help you manage tasks better and do not sell your data.
+              {tx(
+                'เราเก็บข้อมูลเท่าที่จำเป็นเพื่อช่วยจัดการงานเรียน และจะไม่นำข้อมูลของคุณไปขาย',
+                'We collect limited data to help you manage tasks better and do not sell your data.'
+              )}
             </CardDescription>
           </CardHeader>
         </Card>
 
         <div className="space-y-4 mb-8">
-          <h2 className="font-semibold text-lg px-2">What We Collect</h2>
+          <h2 className="font-semibold text-lg px-2">{tx('ข้อมูลที่เราเก็บ', 'What We Collect')}</h2>
           {dataItems.map((item, index) => (
             <motion.div
               key={index}
@@ -112,20 +126,32 @@ const PDPA: React.FC = () => {
         </div>
 
         <div className="mb-8">
-          <h2 className="font-semibold text-lg px-2 mb-3">Details</h2>
+          <h2 className="font-semibold text-lg px-2 mb-3">{tx('รายละเอียด', 'Details')}</h2>
           <Card className="border-border/50">
             <ScrollArea className="h-44 p-4 text-sm text-muted-foreground leading-relaxed">
               <p className="mb-3">
-                1. Priority AI uses your task and deadline data to provide a ranked task list.
+                {tx(
+                  '1. Priority AI ใช้ข้อมูลงานและกำหนดส่งของคุณเพื่อแนะนำลำดับการทำงาน',
+                  '1. Priority AI uses your task and deadline data to provide a ranked task list.'
+                )}
               </p>
               <p className="mb-3">
-                2. Task status is visible only to relevant classroom members and teachers.
+                {tx(
+                  '2. สถานะงานจะแสดงให้เฉพาะสมาชิกห้องเรียนและครูที่เกี่ยวข้องเท่านั้น',
+                  '2. Task status is visible only to relevant classroom members and teachers.'
+                )}
               </p>
               <p className="mb-3">
-                3. You can update your personal profile data anytime from the profile screen.
+                {tx(
+                  '3. คุณสามารถแก้ไขข้อมูลโปรไฟล์ส่วนตัวได้ทุกเมื่อจากหน้าโปรไฟล์',
+                  '3. You can update your personal profile data anytime from the profile screen.'
+                )}
               </p>
               <p>
-                4. Data access is controlled and limited to system features that need it.
+                {tx(
+                  '4. การเข้าถึงข้อมูลถูกควบคุมและจำกัดเฉพาะฟีเจอร์ที่จำเป็น',
+                  '4. Data access is controlled and limited to system features that need it.'
+                )}
               </p>
             </ScrollArea>
           </Card>
@@ -136,19 +162,19 @@ const PDPA: React.FC = () => {
             onClick={handleAccept}
             className="w-full h-14 text-lg rounded-2xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
           >
-            Accept and Continue
+            {tx('ยอมรับและดำเนินการต่อ', 'Accept and Continue')}
           </Button>
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
             className="w-full h-12 text-muted-foreground"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            <ArrowLeft className="mr-2 h-4 w-4" /> {tx('กลับ', 'Back')}
           </Button>
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground mt-8 uppercase tracking-widest">
-          DekThai © 2026 Privacy Policy
+          {tx('DekThai (c) 2026 นโยบายความเป็นส่วนตัว', 'DekThai (c) 2026 Privacy Policy')}
         </p>
       </div>
     </div>
@@ -156,3 +182,4 @@ const PDPA: React.FC = () => {
 };
 
 export default PDPA;
+

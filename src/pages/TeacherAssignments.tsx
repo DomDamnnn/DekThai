@@ -865,7 +865,7 @@ const TeacherAssignments: React.FC = () => {
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {tx("กำหนดส่ง:", "Due:")} {formatDateThai(assignment.submission.deadline)}
+                      {tx("กำหนดส่ง:", "Due:")} {formatDateThai(assignment.submission.deadline, settings.language)}
                     </p>
                   </div>
                 ))}

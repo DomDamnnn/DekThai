@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/hooks/useLocale';
 
 type MemberCard = {
   userId: string;
@@ -48,6 +49,7 @@ const GroupPage: React.FC = () => {
     cancelJoinRequest,
   } = useAuth();
   const { toast } = useToast();
+  const { tx } = useLocale();
 
   const [selectedClassCode, setSelectedClassCode] = useState('');
   const [selectedMember, setSelectedMember] = useState<MemberCard | null>(null);
@@ -167,7 +169,10 @@ const GroupPage: React.FC = () => {
   const handleLeaveClassroom = async () => {
     if (!student || student.role !== 'student' || !activeClassCode || isLeavingClassroom) return;
     const confirmed = window.confirm(
-      `Leave classroom ${activeClassCode}? You can rejoin later with class code.`
+      tx(
+        `ต้องการออกจากห้อง ${activeClassCode} หรือไม่? คุณสามารถเข้าร่วมใหม่ภายหลังได้ด้วยรหัสห้อง`,
+        `Leave classroom ${activeClassCode}? You can rejoin later with class code.`
+      )
     );
     if (!confirmed) return;
 
@@ -175,13 +180,13 @@ const GroupPage: React.FC = () => {
       setIsLeavingClassroom(true);
       await cancelJoinRequest();
       toast({
-        title: 'Left classroom',
-        description: `You have left ${activeClassCode}.`,
+        title: tx('ออกจากห้องเรียนแล้ว', 'Left classroom'),
+        description: tx(`คุณออกจาก ${activeClassCode} แล้ว`, `You have left ${activeClassCode}.`),
       });
     } catch (error: any) {
       toast({
-        title: 'Unable to leave classroom',
-        description: error?.message || 'Please try again.',
+        title: tx('ไม่สามารถออกจากห้องเรียนได้', 'Unable to leave classroom'),
+        description: error?.message || tx('กรุณาลองอีกครั้ง', 'Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -197,20 +202,20 @@ const GroupPage: React.FC = () => {
         <div className="pt-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <School className="w-6 h-6 text-primary" />
-            Classroom
+            {tx('ห้องเรียน', 'Classroom')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            View all members and tap to see profile details in a popup.
+            {tx('ดูสมาชิกทั้งหมด และแตะเพื่อดูรายละเอียดโปรไฟล์', 'View all members and tap to see profile details in a popup.')}
           </p>
         </div>
 
         {student.role === 'teacher' && availableClassCodes.length > 0 && (
           <Card className="border-none shadow-sm">
             <CardContent className="p-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Select classroom</p>
+              <p className="text-xs font-medium text-muted-foreground">{tx('เลือกห้องเรียน', 'Select classroom')}</p>
               <Select value={activeClassCode} onValueChange={setSelectedClassCode}>
                 <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Select class code" />
+                  <SelectValue placeholder={tx('เลือกรหัสห้อง', 'Select class code')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableClassCodes.map((code) => (
@@ -228,15 +233,15 @@ const GroupPage: React.FC = () => {
           <Card className="border-none shadow-sm">
             <CardContent className="p-6 text-center space-y-3">
               <Users className="w-10 h-10 text-muted-foreground/40 mx-auto" />
-              <p className="font-semibold">No linked classroom yet.</p>
+              <p className="font-semibold">{tx('ยังไม่มีห้องเรียนที่เชื่อมไว้', 'No linked classroom yet.')}</p>
               <p className="text-sm text-muted-foreground">
-                Add your class code first, then member list will appear here.
+                {tx('เพิ่มรหัสห้องเรียนก่อน แล้วรายชื่อสมาชิกจะปรากฏที่นี่', 'Add your class code first, then member list will appear here.')}
               </p>
               <Button
                 className="rounded-xl"
                 onClick={() => navigate(ROUTE_PATHS.CLASS_CODE)}
               >
-                Go to Class Code
+                {tx('ไปที่หน้ารหัสห้องเรียน', 'Go to Class Code')}
               </Button>
             </CardContent>
           </Card>
@@ -251,14 +256,14 @@ const GroupPage: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Class Code</p>
+                  <p className="text-xs text-muted-foreground">{tx('รหัสห้องเรียน', 'Class Code')}</p>
                   <p className="text-lg font-bold tracking-wide">{activeClassCode}</p>
                 </div>
-                <Badge className="rounded-full bg-primary text-white">{members.length} members</Badge>
+                <Badge className="rounded-full bg-primary text-white">{members.length} {tx('คน', 'members')}</Badge>
               </div>
               <div className="mt-3 flex gap-2">
-                <Badge variant="secondary">Teachers {teacherCount}</Badge>
-                <Badge variant="outline">Students {studentCount}</Badge>
+                <Badge variant="secondary">{tx('ครู', 'Teachers')} {teacherCount}</Badge>
+                <Badge variant="outline">{tx('นักเรียน', 'Students')} {studentCount}</Badge>
               </div>
               {student.role === 'student' && (
                 <div className="mt-3 flex justify-end">
@@ -270,7 +275,7 @@ const GroupPage: React.FC = () => {
                     disabled={isLeavingClassroom}
                   >
                     <LogOut className="w-3.5 h-3.5 mr-1.5" />
-                    {isLeavingClassroom ? 'Leaving...' : 'Leave classroom'}
+                    {isLeavingClassroom ? tx('กำลังออก...', 'Leaving...') : tx('ออกจากห้องเรียน', 'Leave classroom')}
                   </Button>
                 </div>
               )}
@@ -278,12 +283,12 @@ const GroupPage: React.FC = () => {
 
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Classroom Members</CardTitle>
+                <CardTitle className="text-base">{tx('สมาชิกในห้องเรียน', 'Classroom Members')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {members.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    No members in this classroom yet.
+                    {tx('ยังไม่มีสมาชิกในห้องเรียนนี้', 'No members in this classroom yet.')}
                   </div>
                 )}
 
@@ -303,7 +308,7 @@ const GroupPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <p className="font-semibold truncate">{member.name}</p>
                           <Badge variant={member.role === 'teacher' ? 'secondary' : 'outline'}>
-                            {member.role === 'teacher' ? 'Teacher' : 'Student'}
+                            {member.role === 'teacher' ? tx('ครู', 'Teacher') : tx('นักเรียน', 'Student')}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
@@ -319,7 +324,7 @@ const GroupPage: React.FC = () => {
         <Dialog open={Boolean(selectedMember)} onOpenChange={() => setSelectedMember(null)}>
           <DialogContent className="max-w-sm rounded-2xl">
             <DialogHeader>
-              <DialogTitle>Profile Detail</DialogTitle>
+              <DialogTitle>{tx('รายละเอียดโปรไฟล์', 'Profile Detail')}</DialogTitle>
             </DialogHeader>
 
             {selectedMember && (
@@ -332,7 +337,7 @@ const GroupPage: React.FC = () => {
                   <div>
                     <p className="font-bold">{selectedMember.name}</p>
                     <Badge variant={selectedMember.role === 'teacher' ? 'secondary' : 'outline'}>
-                      {selectedMember.role === 'teacher' ? 'Subject Teacher' : 'Student'}
+                      {selectedMember.role === 'teacher' ? tx('ครูผู้สอน', 'Subject Teacher') : tx('นักเรียน', 'Student')}
                     </Badge>
                   </div>
                 </div>
@@ -360,7 +365,7 @@ const GroupPage: React.FC = () => {
 
                 <div className="rounded-xl border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-primary mt-0.5" />
-                  This popup uses each member's latest registered profile data.
+                  {tx('ข้อมูลในหน้าต่างนี้อ้างอิงจากโปรไฟล์ล่าสุดที่สมาชิกลงทะเบียนไว้', "This popup uses each member's latest registered profile data.")}
                 </div>
               </div>
             )}

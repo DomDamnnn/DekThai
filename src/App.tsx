@@ -23,6 +23,8 @@ import StackPage from "@/pages/Stack";
 import DekCamp from "@/pages/DekCamp";
 import Profile from "@/pages/Profile";
 import TeacherClassrooms from "@/pages/TeacherClassrooms";
+import TeacherOverview from "@/pages/TeacherOverview";
+import TeacherClassroomDetail from "@/pages/TeacherClassroomDetail";
 import TeacherInbox from "@/pages/TeacherInbox";
 import TeacherStudents from "@/pages/TeacherStudents";
 import TeacherAssignments from "@/pages/TeacherAssignments";
@@ -70,7 +72,9 @@ const App = () => {
             <Route path={ROUTE_PATHS.STACK} element={<StackPage />} />
             <Route path={ROUTE_PATHS.DEK_CAMP} element={<DekCamp />} />
             <Route path={ROUTE_PATHS.PROFILE} element={<Profile />} />
+            <Route path={ROUTE_PATHS.TEACHER_OVERVIEW} element={<TeacherOverview />} />
             <Route path={ROUTE_PATHS.TEACHER_CLASSROOMS} element={<TeacherClassrooms />} />
+            <Route path={ROUTE_PATHS.TEACHER_CLASSROOM_DETAIL} element={<TeacherClassroomDetail />} />
             <Route path={ROUTE_PATHS.TEACHER_INBOX} element={<TeacherInbox />} />
             <Route path={ROUTE_PATHS.TEACHER_STUDENTS} element={<TeacherStudents />} />
             <Route path={ROUTE_PATHS.TEACHER_ASSIGNMENTS} element={<TeacherAssignments />} />

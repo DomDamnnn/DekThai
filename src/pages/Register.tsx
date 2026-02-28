@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout';
 import { RegisterForm, RegisterValues } from '@/components/Forms';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
+import { useLocale } from '@/hooks/useLocale';
 
 const isTestOtpEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_OTP === 'true';
 
@@ -13,13 +14,14 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const { register, requestRegisterEmailOtp } = useAuth();
   const { toast } = useToast();
+  const { tx } = useLocale();
 
   const handleRequestOtp = async (data: RegisterValues) => {
     try {
       await requestRegisterEmailOtp(data.email);
       toast({
-        title: 'Verification code sent',
-        description: `Please check ${data.email} and enter the code.`,
+        title: tx('ส่งรหัสยืนยันแล้ว', 'Verification code sent'),
+        description: tx(`กรุณาตรวจสอบ ${data.email} และกรอกรหัส`, `Please check ${data.email} and enter the code.`),
       });
     } catch (error: any) {
       const message = String(error?.message || '').toLowerCase();
@@ -27,15 +29,15 @@ const Register: React.FC = () => {
 
       if (isTestOtpEnabled && isRateLimited) {
         toast({
-          title: 'Test OTP fallback enabled',
-          description: 'Email OTP is rate-limited. Use test code 123456 to continue.',
+          title: tx('เปิดโหมด OTP ทดสอบ', 'Test OTP fallback enabled'),
+          description: tx('OTP ทางอีเมลถูกจำกัดชั่วคราว ใช้รหัสทดสอบ 123456 เพื่อดำเนินการต่อ', 'Email OTP is rate-limited. Use test code 123456 to continue.'),
         });
         return;
       }
 
       toast({
-        title: 'Send code failed',
-        description: error?.message || 'Unable to send verification code.',
+        title: tx('ส่งรหัสไม่สำเร็จ', 'Send code failed'),
+        description: error?.message || tx('ไม่สามารถส่งรหัสยืนยันได้', 'Unable to send verification code.'),
         variant: 'destructive',
       });
       throw error;
@@ -47,8 +49,8 @@ const Register: React.FC = () => {
       const result = await register(data);
       if ('pendingEmailVerification' in result && result.pendingEmailVerification) {
         toast({
-          title: 'Account created',
-          description: `Signup saved for ${result.email}. Please confirm email once, then sign in.`,
+          title: tx('สร้างบัญชีสำเร็จ', 'Account created'),
+          description: tx(`บันทึกการสมัครของ ${result.email} แล้ว กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ`, `Signup saved for ${result.email}. Please confirm email once, then sign in.`),
         });
         navigate(ROUTE_PATHS.LOGIN);
         return;
@@ -56,8 +58,8 @@ const Register: React.FC = () => {
 
       const user = result;
       toast({
-        title: 'Account created',
-        description: `Welcome ${user.nickname}`,
+        title: tx('สร้างบัญชีสำเร็จ', 'Account created'),
+        description: tx(`ยินดีต้อนรับ ${user.nickname}`, `Welcome ${user.nickname}`),
       });
       if (user.role === 'teacher') {
         navigate(ROUTE_PATHS.TEACHER_CLASSROOMS);
@@ -66,8 +68,8 @@ const Register: React.FC = () => {
       navigate(ROUTE_PATHS.HOME);
     } catch (error: any) {
       toast({
-        title: 'Verify failed',
-        description: error?.message || 'Unable to create account.',
+        title: tx('ยืนยันไม่สำเร็จ', 'Verify failed'),
+        description: error?.message || tx('ไม่สามารถสร้างบัญชีได้', 'Unable to create account.'),
         variant: 'destructive',
       });
       throw error;
@@ -78,13 +80,13 @@ const Register: React.FC = () => {
     try {
       await requestRegisterEmailOtp(email);
       toast({
-        title: 'Verification code sent again',
-        description: `A new code was sent to ${email}.`,
+        title: tx('ส่งรหัสยืนยันอีกครั้งแล้ว', 'Verification code sent again'),
+        description: tx(`ส่งรหัสใหม่ไปที่ ${email} แล้ว`, `A new code was sent to ${email}.`),
       });
     } catch (error: any) {
       toast({
-        title: 'Resend failed',
-        description: error?.message || 'Unable to resend verification code.',
+        title: tx('ส่งรหัสซ้ำไม่สำเร็จ', 'Resend failed'),
+        description: error?.message || tx('ไม่สามารถส่งรหัสยืนยันอีกครั้งได้', 'Unable to resend verification code.'),
         variant: 'destructive',
       });
       throw error;
@@ -104,11 +106,9 @@ const Register: React.FC = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg shadow-primary/20">
               <span className="text-white font-bold text-2xl">DT</span>
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Create <span className="text-primary">DekThai</span> Account
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{tx('สร้างบัญชี DekThai', 'Create DekThai Account')}</h1>
             <p className="text-muted-foreground">
-              Start organizing your school tasks with less stress.
+              {tx('เริ่มจัดการงานเรียนให้เป็นระบบและเครียดน้อยลง', 'Start organizing your school tasks with less stress.')}
             </p>
           </div>
 
@@ -122,18 +122,18 @@ const Register: React.FC = () => {
 
           <div className="text-center">
             <p className="text-muted-foreground mb-4">
-              Already have an account?{' '}
+              {tx('มีบัญชีอยู่แล้ว?', 'Already have an account?')}{' '}
               <Link
                 to={ROUTE_PATHS.LOGIN}
                 className="text-primary font-semibold hover:underline underline-offset-4"
               >
-                Sign in
+                {tx('เข้าสู่ระบบ', 'Sign in')}
               </Link>
             </p>
 
             <div className="pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground px-4">
-                By creating an account, you agree to Terms of Use and Privacy Policy.
+                {tx('การสร้างบัญชีถือว่าคุณยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว', 'By creating an account, you agree to Terms of Use and Privacy Policy.')}
               </p>
             </div>
           </div>
@@ -147,3 +147,4 @@ const Register: React.FC = () => {
 };
 
 export default Register;
+

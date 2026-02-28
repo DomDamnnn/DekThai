@@ -7,26 +7,28 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useLocale } from "@/hooks/useLocale";
 
 const Notifications: React.FC = () => {
   const { notifications, unreadCount, markAllAsRead, clearAll } = useNotifications();
   const { toast } = useToast();
+  const { tx } = useLocale();
 
   const unreadNotifications = notifications.filter((n) => !n.isRead);
 
   const onReadAll = () => {
     markAllAsRead();
     toast({
-      title: "อัปเดตแล้ว",
-      description: "อ่านการแจ้งเตือนทั้งหมดแล้ว",
+      title: tx("อัปเดตแล้ว", "Updated"),
+      description: tx("อ่านการแจ้งเตือนทั้งหมดแล้ว", "All notifications marked as read."),
     });
   };
 
   const onClear = () => {
     clearAll();
     toast({
-      title: "ล้างแล้ว",
-      description: "ลบการแจ้งเตือนทั้งหมดเรียบร้อย",
+      title: tx("ล้างแล้ว", "Cleared"),
+      description: tx("ลบการแจ้งเตือนทั้งหมดเรียบร้อย", "All notifications removed."),
     });
   };
 
@@ -40,9 +42,9 @@ const Notifications: React.FC = () => {
                 <Bell className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">การแจ้งเตือน</h1>
+                <h1 className="text-xl font-bold">{tx("การแจ้งเตือน", "Notifications")}</h1>
                 <p className="text-xs text-muted-foreground">
-                  {unreadCount > 0 ? `มี ${unreadCount} รายการที่ยังไม่อ่าน` : "ไม่มีรายการใหม่"}
+                  {unreadCount > 0 ? tx(`มี ${unreadCount} รายการที่ยังไม่อ่าน`, `${unreadCount} unread notification(s)`) : tx("ไม่มีรายการใหม่", "No new items")}
                 </p>
               </div>
             </div>
@@ -61,10 +63,10 @@ const Notifications: React.FC = () => {
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="w-full bg-muted/50 p-1 rounded-xl mb-6">
               <TabsTrigger value="all" className="flex-1 rounded-lg text-sm">
-                ทั้งหมด
+                {tx("ทั้งหมด", "All")}
               </TabsTrigger>
               <TabsTrigger value="unread" className="flex-1 rounded-lg text-sm">
-                ยังไม่อ่าน
+                {tx("ยังไม่อ่าน", "Unread")}
               </TabsTrigger>
             </TabsList>
 
@@ -76,7 +78,7 @@ const Notifications: React.FC = () => {
                   ))}
                 </motion.div>
               ) : (
-                <div className="py-20 text-center text-muted-foreground text-sm">ยังไม่มีการแจ้งเตือนจากงานที่มอบหมาย</div>
+                <div className="py-20 text-center text-muted-foreground text-sm">{tx("ยังไม่มีการแจ้งเตือนจากงานที่มอบหมาย", "No assignment notifications yet.")}</div>
               )}
             </TabsContent>
 
@@ -88,7 +90,7 @@ const Notifications: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="py-20 text-center text-muted-foreground text-sm">คุณอ่านครบทุกรายการแล้ว</div>
+                <div className="py-20 text-center text-muted-foreground text-sm">{tx("คุณอ่านครบทุกรายการแล้ว", "You're all caught up.")}</div>
               )}
             </TabsContent>
           </Tabs>
