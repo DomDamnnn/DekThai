@@ -56,7 +56,7 @@ const Register: React.FC = () => {
         return;
       }
 
-      const user = result;
+      const user = result as any;
       toast({
         title: tx('สร้างบัญชีสำเร็จ', 'Account created'),
         description: tx(`ยินดีต้อนรับ ${user.nickname}`, `Welcome ${user.nickname}`),

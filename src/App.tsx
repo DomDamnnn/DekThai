@@ -29,6 +29,10 @@ import TeacherInbox from "@/pages/TeacherInbox";
 import TeacherStudents from "@/pages/TeacherStudents";
 import TeacherAssignments from "@/pages/TeacherAssignments";
 
+// chat feature pages
+import ChatRooms from "@/pages/ChatRooms";
+import ChatRoom from "@/pages/ChatRoom";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -72,12 +76,17 @@ const App = () => {
             <Route path={ROUTE_PATHS.STACK} element={<StackPage />} />
             <Route path={ROUTE_PATHS.DEK_CAMP} element={<DekCamp />} />
             <Route path={ROUTE_PATHS.PROFILE} element={<Profile />} />
+            
             <Route path={ROUTE_PATHS.TEACHER_OVERVIEW} element={<TeacherOverview />} />
             <Route path={ROUTE_PATHS.TEACHER_CLASSROOMS} element={<TeacherClassrooms />} />
             <Route path={ROUTE_PATHS.TEACHER_CLASSROOM_DETAIL} element={<TeacherClassroomDetail />} />
             <Route path={ROUTE_PATHS.TEACHER_INBOX} element={<TeacherInbox />} />
             <Route path={ROUTE_PATHS.TEACHER_STUDENTS} element={<TeacherStudents />} />
             <Route path={ROUTE_PATHS.TEACHER_ASSIGNMENTS} element={<TeacherAssignments />} />
+
+            {/* chat routes */}
+            <Route path={ROUTE_PATHS.CHAT_ROOMS} element={<ChatRooms />} />
+            <Route path={ROUTE_PATHS.CHAT_ROOM} element={<ChatRoom />} />
 
             {/* --- Catch-all & Redirection --- */}
             <Route path="*" element={<Navigate to={ROUTE_PATHS.WELCOME} replace />} />

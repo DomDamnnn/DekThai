@@ -54,6 +54,8 @@ const Home: React.FC = () => {
     return th ? `วันนี้คุณมีงานที่ต้องทำ ${activeTasks.length} งาน` : `You have ${activeTasks.length} active tasks today.`;
   }, [activeTasks.length, hasClassAccess, th]);
 
+
+
   return (
     <Layout>
       <div className="px-5 pt-6 pb-24 space-y-8">
@@ -75,6 +77,7 @@ const Home: React.FC = () => {
             <Bell className="w-5 h-5 text-muted-foreground" />
           </Link>
         </motion.div>
+
 
         {!hasClassAccess && (
           <div className="p-4 rounded-2xl border border-primary/20 bg-primary/5 space-y-3">

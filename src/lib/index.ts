@@ -21,6 +21,11 @@ export const ROUTE_PATHS = {
   TEACHER_INBOX: '/teacher/inbox',
   TEACHER_STUDENTS: '/teacher/students',
   TEACHER_ASSIGNMENTS: '/teacher/assignments',
+  // chat rooms feature
+  CHAT_ROOMS: '/chat-rooms',
+  CHAT_ROOM: '/chat-room/:roomId',
+
+  
 } as const;
 
 export type TaskStatus = 'ยังไม่เริ่ม' | 'กำลังทำ' | 'พร้อมส่ง' | 'ส่งแล้ว' | 'รอตรวจ' | 'ตีกลับ';

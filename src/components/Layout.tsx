@@ -42,13 +42,16 @@ function AppLayout({ children }: LayoutProps) {
 
   const studentNavItems = [
     { label: tx("หน้าแรก", "Home"), path: ROUTE_PATHS.HOME, icon: Home },
+    { label: tx("ห้อง", "Rooms"), path: ROUTE_PATHS.CHAT_ROOMS, icon: Inbox },
     { label: tx("งานทั้งหมด", "Workspace"), path: ROUTE_PATHS.WORKSPACE, icon: ClipboardList },
     { label: tx("Priority AI", "Priority AI"), path: ROUTE_PATHS.SMART_PRIORITY, icon: Sparkles },
+    
     { label: tx("โปรไฟล์", "Profile"), path: ROUTE_PATHS.PROFILE, icon: User },
   ];
 
   const teacherNavItems = [
     { label: tx("ห้องเรียน", "Classrooms"), path: ROUTE_PATHS.TEACHER_CLASSROOMS, icon: Home },
+    { label: tx("ห้องพูดคุย", "Rooms"), path: ROUTE_PATHS.CHAT_ROOMS, icon: Inbox },
     { label: tx("กล่องข้อความ", "Inbox"), path: ROUTE_PATHS.TEACHER_INBOX, icon: Inbox },
     { label: tx("งานที่สั่ง", "Assignments"), path: ROUTE_PATHS.TEACHER_ASSIGNMENTS, icon: ClipboardCheck },
     { label: tx("ปฏิทิน", "Calendar"), path: ROUTE_PATHS.CALENDAR, icon: CalendarDays },
