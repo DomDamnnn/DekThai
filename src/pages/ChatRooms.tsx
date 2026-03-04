@@ -5,10 +5,10 @@ import { Layout } from "@/components/Layout";
 
 // fixed room list as requested
 const rooms = [
-  { id: "chill", name: "ชิลล์" },
-  { id: "tutor", name: "ติวหนังสือ" },
-  { id: "read", name: "อ่านหนังสือ" },
-  { id: "work", name: "ทำงาน" },
+  { id: "Chill", name: "ชิลล์" },
+  { id: "Tutor", name: "ติวหนังสือ" },
+  { id: "Read", name: "อ่านหนังสือ" },
+  { id: "Work", name: "ทำงาน" },
 ];
 
 const ChatRooms: React.FC = () => {
