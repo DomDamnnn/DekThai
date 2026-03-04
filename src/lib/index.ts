@@ -125,6 +125,29 @@ export interface ClassroomMember {
   joinedAt: string;
 }
 
+export type ChatRoomScope = 'app' | 'school' | 'classroom';
+
+export interface ChatRoom {
+  id: string;
+  name: string;
+  description?: string;
+  scope: ChatRoomScope;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Scope-specific fields
+  school?: string; // for school and classroom scopes
+  classCode?: string; // for classroom scope only
+  
+  // Customization
+  color?: string;
+  emoji?: string;
+  maxParticipants?: number;
+  isActive: boolean;
+}
+
 export interface TeacherAssignmentRecord {
   id: string;
   classCode: string;

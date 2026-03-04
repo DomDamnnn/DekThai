@@ -262,12 +262,21 @@ const useProvideAuth = () => {
       const localState = isTestOtpEnabled ? readAuthState() : null;
       const localCurrent = localState ? getCurrentUser(localState) : null;
 
-      const [{ data: authData }, { data: authSession }] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getSession(),
-      ]);
+      let authUser: any = null;
+      try {
+        const [{ data: authData }, { data: authSession }] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase.auth.getSession(),
+        ]);
 
-      const authUser = authData.user || authSession.session?.user || null;
+        authUser = authData.user || authSession.session?.user || null;
+      } catch (authError) {
+        // If auth session is missing, that's ok for test mode
+        if (!isTestOtpEnabled) {
+          throw authError;
+        }
+      }
+
       if (!authUser) {
         if (isTestOtpEnabled && localCurrent) {
           setStudent(localCurrent);
@@ -584,18 +593,24 @@ const useProvideAuth = () => {
   }, [syncFromCloud]);
 
   const resolveCloudUserId = useCallback(async () => {
-    if (student?.id && isUuid(student.id)) {
+    if (student?.id) {
+      // For test accounts or real cloud accounts, just return the ID
       return student.id;
+    }
+
+    // If no student ID at all, try to get from cloud
+    if (isTestOtpEnabled) {
+      throw new Error("Please log in to continue.");
     }
 
     const authUserResult = await supabase.auth.getUser();
     if (authUserResult.error) {
-      throw new Error(authUserResult.error.message || "Unable to resolve your account.");
+      throw new Error(authUserResult.error.message || "Auth session missing! Please log in again.");
     }
 
     const authUserId = authUserResult.data.user?.id || "";
-    if (!isUuid(authUserId)) {
-      throw new Error("Current account is in local test mode. Please sign in with your real account.");
+    if (!authUserId) {
+      throw new Error("Unable to resolve your account.");
     }
     return authUserId;
   }, [student]);
