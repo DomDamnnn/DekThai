@@ -44,34 +44,8 @@ const ChatRooms: React.FC = () => {
     }
   };
 
-  // User hasn't joined any classroom yet
-  if (!hasClassroomAccess) {
-    return (
-      <Layout>
-        <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-10 space-y-6">
-          <div className="text-center space-y-3">
-            <AlertCircle className="w-16 h-16 mx-auto text-muted-foreground" />
-            <h2 className="text-2xl font-bold text-foreground">
-              {tx("ยังไม่ได้เข้าห้องเรียน", "No classroom access")}
-            </h2>
-            <p className="text-muted-foreground max-w-sm">
-              {tx(
-                "คุณต้องเข้าห้องเรียนก่อนจึงจะสามารถใช้ห้องสนทนาได้",
-                "You need to join a classroom first to access chat rooms."
-              )}
-            </p>
-          </div>
-
-          <Link to={ROUTE_PATHS.CLASS_CODE}>
-            <Button size="lg" className="gap-2">
-              <Zap className="w-4 h-4" />
-              {tx("เข้าห้องเรียน", "Join Classroom")}
-            </Button>
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Helper to check if user should see classroom option to join
+  const shouldPromptClassroomJoin = !hasClassroomAccess && rooms.length > 0;
 
   // Group rooms by scope
   const appRooms = rooms.filter((r) => r.scope === "app");
@@ -148,6 +122,22 @@ const ChatRooms: React.FC = () => {
                   {schoolRooms.length}
                 </Badge>
               </div>
+              {!hasClassroomAccess && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-medium mb-1">
+                      {tx("เข้าห้องเรียนเพื่อเข้าถึง", "Join a classroom to access")}
+                    </p>
+                    <Link to={ROUTE_PATHS.CLASS_CODE}>
+                      <Button size="sm" variant="outline" className="gap-1 mt-1 text-xs h-7">
+                        <Zap className="w-3 h-3" />
+                        {tx("เข้าห้องเรียน", "Join Classroom")}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
               <div className="grid gap-3">
                 {schoolRooms.map((room) => (
                   <motion.div
@@ -228,8 +218,16 @@ const ChatRooms: React.FC = () => {
           )}
 
           {rooms.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              {tx("ยังไม่มีห้องสนทนา", "No chat rooms available yet")}
+            <div className="text-center py-12 text-muted-foreground space-y-3">
+              <p>{tx("ยังไม่มีห้องสนทนา", "No chat rooms available yet")}</p>
+              {!hasClassroomAccess && (
+                <p className="text-sm">
+                  {tx(
+                    "เข้าห้องเรียนเพื่อเข้าถึงห้องสนทนาทั้งโรงเรียนและห้องเรียน",
+                    "Join a classroom to access school-wide and classroom chat rooms."
+                  )}
+                </p>
+              )}
             </div>
           )}
         </div>

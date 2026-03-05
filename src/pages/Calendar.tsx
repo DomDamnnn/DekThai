@@ -111,7 +111,7 @@ const CalendarPage: React.FC = () => {
           viewport={{ once: true, amount: 0.2 }}
           transition={{ type: "spring", stiffness: 260, damping: 26 }}
         >
-          <Card className="border-none shadow-sm overflow-hidden rounded-[24px]">
+          <Card className="border-none shadow-sm overflow-hidden rounded-[24px] mx-auto max-w-sm">
             <CardContent className="p-4 flex flex-col items-center gap-3">
               <CalendarUI
                 mode="single"

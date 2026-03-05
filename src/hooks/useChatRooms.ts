@@ -29,24 +29,23 @@ export function useChatRooms() {
   const accessibleRooms = useMemo(() => {
     if (!student) return [];
 
-    // Teachers can access all app-wide and school-wide rooms
-    // Students must have a classroom to access any rooms
-    if (student.role === 'student' && !student.classCode) {
-      return [];
-    }
-
     return rooms.filter((room) => {
       // App-wide rooms: accessible to all
       if (room.scope === 'app') return true;
 
-      // School-wide rooms: teachers and students in same school
+      // School-wide rooms: teachers and students in same school (students need classroom)
       if (room.scope === 'school') {
+        if (student.role === 'teacher') return room.school === student.school;
+        // Students need a classroom to access school-wide rooms
+        if (!student.classCode) return false;
         return room.school === student.school;
       }
 
       // Classroom-specific rooms: only students in same classroom
       if (room.scope === 'classroom') {
         if (student.role === 'teacher') return true; // Teachers see all classroom rooms
+        // Students need a classroom to access classroom rooms
+        if (!student.classCode) return false;
         return room.classCode === student.classCode && room.school === student.school;
       }
 
@@ -160,7 +159,7 @@ export function useChatRooms() {
         return true;
       }
 
-      // Students need classroom access
+      // Students without classroom can only access app-wide rooms
       if (!student.classCode) return false;
 
       // School-wide rooms: students in same school
@@ -177,6 +176,7 @@ export function useChatRooms() {
   );
 
   // Check if user has classroom assigned (or is a teacher)
+  // Note: This is now only used for optional features, not as a gate for chat access
   const hasClassroomAccess = student?.role === 'teacher' || Boolean(student?.classCode);
 
   return {
